@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-title" content="{{ \Simplify\Core\WebApp\WebApp::name() }}">
 <link rel="apple-touch-icon" href="{{ \Simplify\Core\WebApp\WebApp::icon(180)[0] }}">
 <script src="{{ \Simplify\Core\Support\Assets::url('pull.js') }}" defer></script>
+<script src="{{ \Simplify\Core\Support\Assets::url('sheet.js') }}" defer></script>
 <script>
     // A page inside host mode's frame drops Pelican's own menus; it keeps that through every link it follows.
     try {
@@ -58,5 +59,11 @@
             new MutationObserver((changes) => changes.some(lost) && queue())
                 .observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
         });
+        // Whatever comes later on a first visit with nothing cached (fonts, Livewire starting, Pelican's footer) changes
+        // what is left under the card, without the page telling: measure again when they are there, and a few times
+        // after the page loaded.
+        document.addEventListener('livewire:initialized', queue);
+        document.fonts?.ready.then(queue);
+        addEventListener('load', () => [0, 300, 1000, 2500].forEach((ms) => setTimeout(queue, ms)));
     }
 </script>

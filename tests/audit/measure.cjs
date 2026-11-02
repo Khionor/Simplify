@@ -171,7 +171,9 @@ const measure = (opts = {}) => {
         r.info.frameTools = n;
         if (actions.length) push('savebelow', 'action button in the page instead of in host mode\'s title bar: ' + actions.slice(0, 5).map((el) => `${el.tagName.toLowerCase()}.${(el.className || '').toString().trim().split(/\s+/).slice(0, 2).join('.')} "${text(el)}" at y=${Math.round(el.getBoundingClientRect().top)}`).join(' | '));
         const sources = document.querySelectorAll('.fi-header-actions-ctn .fi-ac > :is(button, a), .fi-ta-header-toolbar > .fi-ta-actions > :is(button, a), .s-settings > .s-bar button[type=submit]').length;
-        if (sources && !n) push('toolslost', `the page has ${sources} action button(s) but host mode's title bar shows none`);
+        // Simplify's settings on a phone save themselves (1.5.4): no Save to bring up, and in the tree no Run setup again either.
+        const autosave = innerWidth <= 600 && document.querySelector('.s-settings') && !document.querySelector('.s-settings .fi-active .s-pelican-frame');
+        if (sources && !n && !autosave) push('toolslost', `the page has ${sources} action button(s) but host mode's title bar shows none`);
         const header = document.querySelector('.fi-header'); if (header && visible(header) && !header.closest('.fi-modal')) r.info.frameHeader = text(header);
         const crumbs = document.querySelector('.fi-breadcrumbs'); if (crumbs && visible(crumbs)) push('filamentlook', 'Filament breadcrumbs shown inside host mode\'s frame: "' + text(crumbs) + '"');
       }
@@ -195,7 +197,9 @@ const measure = (opts = {}) => {
   for (const dd of document.querySelectorAll('.ps-dropdown')) {
     // Inside a phone's menu a dropdown is a static block of the menu, not a floating panel.
     if (!visible(dd) || (dd.closest('.ps-nav-items') && getComputedStyle(dd).position === 'static')) continue;
-    const b = dd.getBoundingClientRect(), limit = Math.round(H * 2 / 3);
+    // A phone's sheet (1.5.4): fixed over the full width at the bottom, up to 92% of the window (notifications).
+    const sheet = getComputedStyle(dd).position === 'fixed' && dd.getBoundingClientRect().width >= W - 2 && Math.abs(dd.getBoundingClientRect().bottom - H) <= 2;
+    const b = dd.getBoundingClientRect(), limit = Math.round(H * (sheet ? 0.92 : 2 / 3));
     const scrolls = dd.scrollHeight > dd.clientHeight + 2;
     r.info.dropdown = r.info.dropdown || []; r.info.dropdown.push(`${name(dd)} ${Math.round(b.height)}px of ${limit} max${scrolls ? ', scrolls' : ''}`);
     if (b.height > limit + 2) push('dropdowntall', `dropdown higher than two thirds of the window: ${name(dd)} ${Math.round(b.height)}px > ${limit}px`);
@@ -214,6 +218,31 @@ const measure = (opts = {}) => {
       } else { r.info.arrow = r.info.arrow || []; r.info.arrow.push(`${name(dd)} no arrow`); }
     }
   }
+  // 10. A switch's knob stays inside its track, and a control stays inside the card it belongs to (1.5.4: two style
+  // rules for one switch put the knob past the track's end, over the edge of the card).
+  const knob = [];
+  for (const el of all) {
+    if (!el.matches('input[type=checkbox], [role=switch], .ps-switch, .s-switch')) continue;
+    if (getComputedStyle(el).appearance !== 'none' && !el.matches('.ps-switch, [role=switch]')) continue;
+    for (const pseudo of ['::before', '::after']) {
+      const ps = getComputedStyle(el, pseudo);
+      if (!ps.content || ps.content === 'none' || ps.content === 'normal' || ps.position !== 'absolute') continue;
+      const left = parseFloat(ps.left) || 0, width = parseFloat(ps.width) || 0, move = ps.transform && ps.transform !== 'none' ? new DOMMatrix(ps.transform).m41 : 0;
+      if (left + move + width > el.clientWidth + 1 || left + move < -1) knob.push(`${name(el)} knob ${Math.round(left + move)}..${Math.round(left + move + width)} of ${el.clientWidth}`);
+    }
+  }
+  if (knob.length) push('switchout', 'switch knob outside its track: ' + knob.slice(0, 4).join(' | '));
+  const card = (el) => { for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const c = getComputedStyle(a); if (parseFloat(c.borderLeftWidth) > 0 && parseFloat(c.borderRightWidth) > 0 && parseFloat(c.borderTopLeftRadius) > 0 && c.borderLeftStyle !== 'none') return a; } return null; };
+  const outside = [];
+  for (const el of all) {
+    if (!el.matches('button, input:not([type=hidden]), select, textarea, [role=switch], .ps-switch')) continue;
+    const box = card(el);
+    if (!box || between(el, box)) continue;
+    const b = el.getBoundingClientRect(), c = box.getBoundingClientRect();
+    if (b.width < 6) continue;
+    if (b.right > c.right + 1 || b.left < c.left - 1) outside.push(`${name(el)} "${text(el)}" ${Math.round(b.left)}..${Math.round(b.right)} in ${name(box)} ${Math.round(c.left)}..${Math.round(c.right)}`);
+  }
+  if (outside.length) push('controlout', 'control sticks out of its card: ' + outside.slice(0, 4).join(' | '));
   return r;
 };
 

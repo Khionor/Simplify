@@ -73,15 +73,15 @@ const adminTiles = async (overview, serverUrl, openNav) => {
   }
   // The real path once: the shield menu, a tile, then the close button.
   await goto(overview); await sleep(600); await openNav();
-  if (await click('[x-ref="adminButton"]')) {
+  if (await openRef('adminButton')) {
     if (!(await page.locator('.ps-admin-tile >> visible=true').count())) { await page.locator('.ps-admin-group-head >> visible=true').first().click().catch(() => {}); await sleep(600); } // phones: tiles fold out under a group
     const tile = page.locator('.ps-admin-tile >> visible=true').first();
     if (await tile.count()) { await tile.click().catch(() => {}); await frameReady(); await record('tile-click', 'Admin tools-tegel aangeklikt'); if (await click('.ps-host-close', 800)) { await record('tile-closed', 'Admin tools-pagina gesloten, terug op het overzicht'); const st = await alpine('return { adminView: d.adminView, hostPage: !!d.hostPage }'); if (st && (st.adminView || st.hostPage)) problems.push(`${stand} tile-closed: still open after close (${JSON.stringify(st)})`); } }
     else problems.push(`${stand} tile-click: no visible admin tile in the shield menu`);
   }
-  // From a server page: the tile goes through the overview.
-  await goto(serverUrl, 2500); await openNav();
-  if (await click('[x-ref="adminButton"]')) {
+  // From a server page: the tile goes through the overview. A phone reaches Admin tools from the overview's bar only.
+  if (!phone()) await goto(serverUrl, 2500);
+  if (!phone() && await openRef('adminButton')) {
     if (!(await page.locator('.ps-admin-tile >> visible=true').count())) { await page.locator('.ps-admin-group-head >> visible=true').first().click().catch(() => {}); await sleep(600); }
     const tile = page.locator('.ps-admin-tile >> visible=true').first();
     if (await tile.count()) { await tile.click().catch(() => {}); await page.waitForLoadState('domcontentloaded').catch(() => {}); await frameReady(); await record('tile-from-server', 'Admin tools-tegel vanaf een serverpagina'); const st = await alpine('return { adminView: d.adminView, hash: location.hash }'); if (!st || !st.adminView) problems.push(`${stand} tile-from-server: did not open inside Simplify (${JSON.stringify(st)}, url ${rel(page.url())})`); }
@@ -108,6 +108,10 @@ const goto = async (url, ms = 900) => { for (let i = 0; i < 3; i++) { try { awai
 const click = async (sel, ms = 600) => { const l = page.locator(sel).first(); if (!(await l.count()) || !(await l.isVisible().catch(() => false))) { problems.push(`${stand} ${screen}: nothing to click for ${sel}`); return false; } await l.click({ timeout: 5000 }).catch((e) => problems.push(`${stand} ${screen}: click ${sel}: ${e.message.slice(0, 80)}`)); await sleep(ms); return true; };
 const escape = async () => { await page.keyboard.press('Escape'); await sleep(300); };
 const phone = () => VIEWPORTS[stand.split('-')[0]].width <= 600;
+// Phones (1.5.4) reach the overview's menus from the bottom bar: Admin tools as a tab, server groups and the
+// overview's look under Customize. Elsewhere, and on wider screens, the button in the top bar.
+const PHONE_ROUTE = { adminButton: ['.ps-tabbar button[aria-controls="ps-admin-menu"]'], overviewAppearance: ['.ps-tab-customize > .ps-tab', '#ps-tab-customize-menu button:nth-of-type(2)'], overviewGroupsButton: ['.ps-tab-customize > .ps-tab', '#ps-tab-customize-menu button:nth-of-type(1)'] };
+const openRef = async (ref, ms) => { if (phone() && PHONE_ROUTE[ref] && (await page.locator('.ps-tabbar >> visible=true').count())) { for (const sel of PHONE_ROUTE[ref]) if (!(await click(sel, ms))) return false; return true; } return click(`[x-ref="${ref}"]`, ms); };
 
 async function login(email, password) {
   await goto('/login');
@@ -138,14 +142,14 @@ async function round(theme) {
   }
   await alpine(`d.setOverviewView('grid')`); await sleep(500);
   // Phones: the panel menu opens from the tab bar at the bottom (the account button sits inside it).
-  const openNav = async () => { if (!onPhone) return; if (!(await click('.ps-tabbar button[aria-controls="ps-navigation-items"]', 500))) await click('.ps-mobile-menu'); };
-  if (onPhone) { await openNav(); await record('overview-phone-menu', 'Overzicht, telefoonmenu open'); }
+  // Phones have no panel menu any more (1.5.4): the bell and the account sit in the top bar, the rest in the bottom bar.
+  const openNav = async () => {};
   await click('.ps-account-button'); await record('overview-account', 'Accountmenu open');
   await click('#ps-account-actions button[aria-label]:nth-child(2)'); await record('overview-account-theme', 'Accountmenu, themakeuze open'); await escape();
   await openNav();
   await click('[x-ref="notifyButton"]'); await record('overview-bell', 'Bel (aankondigingen) open'); await escape();
   await openNav();
-  await click('[x-ref="adminButton"]'); await record('overview-admin', 'Beheermenu (schild) open');
+  await openRef('adminButton'); await record('overview-admin', 'Beheermenu (schild) open');
   // Admin tools (1.4.4, variant D): the second group open, its pages as tiles (on a phone they fold out under the group).
   if (await click('.ps-admin-group-head:not(.is-open)', 700)) await record('overview-admin-group2', 'Beheermenu, tweede groep open'); await escape();
   await openNav();
@@ -153,9 +157,9 @@ async function round(theme) {
   // The bell's expand button (1.4.4): a window with every notification.
   if (await click('.ps-notify-all, [x-ref="notifyButton"] ~ .ps-dropdown button[aria-label*="all" i], .ps-dropdown button[aria-label*="expand" i]', 1200)) await record('overview-bell-all', 'Meldingenvenster (alle meldingen) open'); await escape(); await escape();
   await openNav();
-  await click('[x-ref="overviewAppearance"]'); await record('overview-customize', 'Weergave aanpassen open'); await escape();
+  await openRef('overviewAppearance'); await record('overview-customize', 'Weergave aanpassen open'); await escape();
   await openNav();
-  await click('[x-ref="overviewGroupsButton"]'); await record('overview-groups', 'Servergroepen open'); await escape();
+  await openRef('overviewGroupsButton'); await record('overview-groups', 'Servergroepen open'); await escape();
   if (await click('.ps-health-pill')) await record('overview-health', 'Gezondheid van de host open'); await escape();
   // Host health card's tab under its bottom edge (1.4.4): the nodes fold open.
   if (await click('.ps-health-tab', 900)) { await record('overview-health-nodes', 'Host health, nodes uitgeklapt'); await click('.ps-health-tab', 600); }
@@ -166,8 +170,8 @@ async function round(theme) {
   for (const [tag, label] of [['1bar', 'één aankondigingsbalk'], ['0bar', 'geen aankondigingsbalk']]) {
     if (!(await unpinBar())) { problems.push(`${stand}: no announcement bar to unpin for ${tag}`); break; }
     await openNav(); await click('[x-ref="notifyButton"]'); await record('overview-bell-' + tag, `Bel open, ${label}`); await escape();
-    await openNav(); await click('[x-ref="adminButton"]'); await record('overview-admin-' + tag, `Beheermenu open, ${label}`); await escape();
-    await openNav(); await click('[x-ref="overviewAppearance"]'); await record('overview-customize-' + tag, `Weergave aanpassen open, ${label}`); await escape();
+    await openNav(); await openRef('adminButton'); await record('overview-admin-' + tag, `Beheermenu open, ${label}`); await escape();
+    await openNav(); await openRef('overviewAppearance'); await record('overview-customize-' + tag, `Weergave aanpassen open, ${label}`); await escape();
   }
   // Pin both bars again for the next stand (the Livewire component keeps the choice per user).
   await page.evaluate(() => { const c = window.Livewire?.all().find((x) => /announcement/i.test(x.name)); if (c) { c.call('pin', 1); c.call('pin', 2); } }).catch(() => {}); await sleep(1500);
@@ -251,7 +255,7 @@ async function round(theme) {
   await record('host', 'Hostmodus');
   if (await click('.ps-health-tab', 900)) { await record('host-health-nodes', 'Hostmodus · host health, nodes uitgeklapt'); await click('.ps-health-tab', 600); }
   await healthHover('host');
-  if (onPhone) { if (await click('.ps-host-menu-open, button[aria-controls="ps-host-menu"], .ps-mobile-menu', 600)) await record('host-phone-menu', 'Hostmodus · telefoonmenu open'); await escape(); }
+  if (onPhone) { if (await click('.ps-host-menu-toggle', 600)) await record('host-phone-menu', 'Hostmodus · telefoonmenu open'); await escape(); }
   const heads = page.locator('.ps-host-group-head'); const hn = await heads.count();
   for (let i = 0; i < hn; i++) { const h = heads.nth(i); const label = (await h.innerText().catch(() => 'sectie ' + i)).trim().split('\n')[0]; await h.click().catch(() => {}); await sleep(2500); await record('host-' + slug(label), 'Hostmodus · ' + label);
     // Only this group's own pages (the tree keeps other groups open), all of them.
@@ -710,6 +714,18 @@ async function extrasFlow(theme) {
 // commands above a phone's console stay put (never taken out and put back).
 async function fixesFlow() {
   const say = (step, ok, detail) => problems.push(`${stand} ${step}: ${ok ? 'ok' : 'WRONG'} ${JSON.stringify(detail)}`);
+  // Simplify's settings right after the first load (1.5.4): the card reaches the footer, also before anything else
+  // happened on the page (Khion saw a short card with empty space under it).
+  if (!phone()) {
+    // A fresh browser (nothing cached yet), straight to the settings, as after signing in on a new computer.
+    const fresh = await browser.newContext({ viewport: page.viewportSize(), baseURL: base, storageState: await page.context().storageState() });
+    const p2 = await fresh.newPage(); await quiet(p2);
+    await p2.goto(new URL('/admin/simplify', base).href, { waitUntil: 'domcontentloaded' }).catch(() => {}); await sleep(3000);
+    const fl = await p2.evaluate(() => { const c = document.querySelector('.s-settings-tabs.fi-vertical'); if (!c) return null; const f = [...document.querySelectorAll('footer, .fi-footer, [data-ps-footer]')].find((e) => e.getClientRects().length && e.getBoundingClientRect().height > 0); const bottom = Math.round(c.getBoundingClientRect().bottom), end = f ? Math.round(f.getBoundingClientRect().top) : innerHeight; return { bottom, end, gap: end - bottom, page: document.documentElement.scrollHeight, window: innerHeight, fit: c.style.getPropertyValue('--s-fit'), footer: !!f }; }).catch(() => null);
+    const shot = page; page = p2; await record('settings-first-load', 'Instellingen · eerste paginalaad, lege cache'); page = shot;
+    await fresh.close().catch(() => {});
+    say('settings-first-load', fl && fl.gap <= 48 && fl.page <= fl.window + 2, fl);
+  }
   if (phone()) {
     await goto('/admin/simplify', 2000);
     await click('.s-settings-tabs [role=tab]:has-text("Appearance"), .s-settings-tabs button:has-text("Appearance")', 900);
@@ -719,6 +735,21 @@ async function fixesFlow() {
     await goto('/admin/simplify-setup', 2000); await record('setup-phone', 'Setup · telefoon');
     const su = await page.evaluate(() => { const w = document.querySelector('.s-setup'), s = w && w.querySelector('.fi-sc-wizard-step.fi-active'); if (!s) return null; const r = s.getBoundingClientRect(); return { step: Math.round(r.height), inner: s.scrollHeight <= s.clientHeight + 4, width: Math.round(r.width) }; }).catch(() => null);
     say('setup-phone', su && su.step > 120 && su.inner && su.width > 250, su);
+  }
+  // A server without any picture shows the icon of its kind of egg, not the cube (Khion, 1.5.3: Python and Node.js
+  // servers all had the cube).
+  {
+    const overview = urls.app.find((p) => /App\\Pages\\Overview$/.test(p.class))?.url || '/';
+    await goto(overview, 2500);
+    const ic = await page.evaluate(() => { const card = [...document.querySelectorAll('.ps-server-card')].find((c) => /Discord bot/.test(c.innerText)); const box = card && card.querySelector('.ps-card-icon'); if (!box) return null; const img = box.querySelector('img'); const svg = box.querySelector('svg use'); return { picture: !!img && img.getClientRects().length > 0 && img.naturalWidth > 0, icon: svg && svg.closest('svg').getClientRects().length ? svg.getAttribute('href') : null }; }).catch(() => null);
+    await record('egg-kind-icon', 'Overzicht · icoon per soort egg');
+    say('egg-kind-icon', ic && (ic.picture || /^#ps-kind-/.test(ic.icon || '')), ic);
+    // Every notification option sits in the bell sheet: this device, messages, Pelican's, and the devices.
+    await alpine('d.openAllNotifications()'); await sleep(1500);
+    const bell = await page.evaluate(() => { const box = [...document.querySelectorAll('.ps-notify-settings')].find((e) => e.getClientRects().length); if (!box) return { shown: false }; return { shown: true, pelican: !![...box.querySelectorAll('input.ps-switch')].find((i) => /pelican/.test(i.getAttribute('x-on:change') || '') && i.getClientRects().length) }; }).catch(() => null);
+    await record('bell-customize', 'Meldingen · alle opties in het bel-blad');
+    say('bell-customize', bell && (!bell.shown || bell.pelican), bell);
+    await escape();
   }
   if (urls.servers['New World']) {
     await goto(urls.servers['New World'], 3500); await record('server-install-buttons', 'Server · installeert, geen Start/Restart');
@@ -751,6 +782,60 @@ async function fixesFlow() {
       say(id, !!opened && row && row.row && row.tools > 0 && loose === 0, { opened, ...row, loose });
     }
     await alpine('d.setHostMode(false)'); await sleep(500);
+  }
+  // Phones (1.5.4): one frame on every screen. No menu button on top, the bell and the account in the top bar, the
+  // overview's bar without "Servers", and every menu a sheet from the bottom over the full width; a tap beside a sheet
+  // only closes it.
+  if (phone()) {
+    const overview = urls.app.find((p) => /App\\Pages\\Overview$/.test(p.class))?.url || '/';
+    const vis = (sel) => page.evaluate((s) => [...document.querySelectorAll(s)].some((e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden'), sel).catch(() => null);
+    const sheet = (sel) => page.evaluate((s) => { const e = [...document.querySelectorAll(s)].find((x) => x.getClientRects().length > 0); if (!e) return null; const r = e.getBoundingClientRect(); return { width: Math.round(r.width), bottom: Math.round(r.bottom), height: Math.round(r.height), window: [innerWidth, innerHeight] }; }, sel).catch(() => null);
+    const isSheet = (r, tall = 0) => !!r && r.width >= r.window[0] - 2 && Math.abs(r.bottom - r.window[1]) <= 2 && r.height >= tall * r.window[1];
+    await goto(overview, 2500);
+    const top = { menuButton: await vis('.ps-mobile-menu'), bell: await vis('.ps-top [x-ref="notifyButton"]'), account: await vis('.ps-top .ps-account-button'), servers: await page.evaluate(() => [...document.querySelectorAll('.ps-tabbar .ps-tab')].filter((b) => b.getClientRects().length).map((b) => b.innerText.trim())).catch(() => null) };
+    await record('phone-frame-overview', 'Telefoon · overzicht: bel en account bovenin, balk onderin');
+    say('phone-frame-overview', top.menuButton === false && top.bell && top.account && Array.isArray(top.servers) && !top.servers.includes('Servers') && top.servers.length >= 2, top);
+    await page.locator('.ps-top [x-ref="notifyButton"]').first().click().catch(() => {}); await sleep(900);
+    const bell = await sheet('#ps-notify-menu'); await record('phone-sheet-bell', 'Telefoon · meldingen als blad');
+    say('phone-sheet-bell', isSheet(bell, 0.85), bell);
+    const before = page.url();
+    await page.mouse.click(195, 20); await sleep(700);
+    const closed = { open: await vis('#ps-notify-menu'), url: page.url() === before };
+    say('phone-sheet-close', closed.open === false && closed.url, closed);
+    await page.locator('.ps-tabbar .ps-tab-customize > .ps-tab').first().click().catch(() => {}); await sleep(700);
+    const custom = await sheet('#ps-tab-customize-menu'); await record('phone-sheet-customize', 'Telefoon · Customize als blad');
+    await page.locator('#ps-tab-customize-menu .ps-menu-item').first().click().catch(() => {}); await sleep(900);
+    const groups = await sheet('#ps-overview-groups-menu'); await record('phone-sheet-groups', 'Telefoon · Server groups als blad');
+    say('phone-sheet-customize', isSheet(custom) && isSheet(groups), { custom, groups });
+    await escape();
+    await page.locator('.ps-top .ps-account-button').first().click().catch(() => {}); await sleep(900);
+    const account = await sheet('.ps-account.account-open .ps-account-menu'); await record('phone-sheet-account', 'Telefoon · account als blad');
+    say('phone-sheet-account', isSheet(account), account);
+    await escape();
+    if (urls.servers['Survival SMP']) {
+      await goto(urls.servers['Survival SMP'], 3500);
+      const srv = { menuButton: await vis('.ps-mobile-menu'), back: await page.evaluate(() => { const b = [...document.querySelectorAll('.ps-back-overview')].find((e) => e.getClientRects().length); return b ? Math.round(b.getBoundingClientRect().width) : null; }).catch(() => null) };
+      await page.locator('.ps-phone-more > .ps-phone-section').first().click().catch(() => {}); await sleep(900);
+      const more = await sheet('#ps-phone-more-menu'); await record('phone-sheet-more', 'Telefoon · server More als blad');
+      say('phone-frame-server', srv.menuButton === false && srv.back && srv.back <= 48 && isSheet(more), { ...srv, more });
+      await escape();
+    }
+    await goto(overview, 1500); await alpine('d.setHostMode(true)'); await sleep(1500);
+    const toggle = await sheet('.ps-host-menu-toggle'); await record('phone-frame-host', 'Telefoon · hostmodus, paginaknop onderin');
+    say('phone-frame-host', isSheet(toggle) && toggle.height <= 100, toggle);
+    await alpine('d.setHostMode(false)'); await sleep(500);
+    // Pelican's lists as short rows: no checkboxes, no column titles and no egg descriptions.
+    await goto(new URL('/admin/eggs', base).href, 2500);
+    const eggs = await page.evaluate(() => { const rows = [...document.querySelectorAll('.fi-ta-row')].filter((r) => r.getClientRects().length); const shown = (s) => [...document.querySelectorAll(s)].filter((e) => e.getClientRects().length > 0).length; return { rows: rows.length, tallest: Math.max(0, ...rows.map((r) => Math.round(r.getBoundingClientRect().height))), checkboxes: shown('.fi-ta-table .fi-ta-record-checkbox'), head: shown('.fi-ta-table thead'), descriptions: shown('.fi-ta-table .fi-ta-cell :is([class$="-description"], [class*="-description "])'), names: [...document.querySelectorAll('.fi-ta-row')].filter((r) => r.getClientRects().length && /[A-Za-z]{3}/.test(r.innerText)).length, wide: document.documentElement.scrollWidth > innerWidth + 1 }; }).catch(() => null);
+    await record('phone-eggs', 'Telefoon · Eggs als korte rijen');
+    say('phone-eggs', eggs && eggs.rows > 0 && eggs.names === eggs.rows && eggs.tallest <= 90 && !eggs.checkboxes && !eggs.head && !eggs.descriptions, eggs);
+    // Simplify's settings save themselves on a phone: no Save button, and a toast after a change.
+    await goto(new URL('/admin/simplify', base).href, 2500);
+    const save = await vis('.s-save-button, .s-settings > .s-bar button[type="submit"]');
+    const sw = page.locator('.s-settings .fi-active :is([role="switch"], input[type="checkbox"]) >> visible=true').first();
+    let toast = null;
+    if (await sw.count()) { await sw.click().catch(() => {}); await page.waitForSelector('.s-saved', { state: 'visible', timeout: 6000 }).catch(() => {}); toast = await vis('.s-saved'); await record('phone-autosave', 'Telefoon · instellingen slaan zelf op'); await sw.click().catch(() => {}); await sleep(2500); }
+    say('phone-autosave', save === false && toast === true, { save, toast });
   }
   // Pull to refresh in the installed app (pull.js): a finger pulled down from the top shows the mark and reloads.
   if (phone()) {
