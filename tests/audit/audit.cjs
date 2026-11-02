@@ -802,6 +802,29 @@ async function fixesFlow() {
     }).catch(() => null);
     await record('pinned-overview', 'Overzicht · vastgezette meldingen onder de bovenbalk');
     say('pinned-overview', !!pins && pins.barTop >= pins.topBottom && pins.barTop < pins.toolsTop && Math.abs(pins.barLeft - pins.toolsLeft) <= 2 && Math.abs(pins.barRight - pins.toolsRight) <= 2, pins);
+    // An add-on's account page (as Server Maker's Steam account) opens in the content area from the account menu: a
+    // real click on the button, nothing over it, no page load (Jeroen V29, 2-11).
+    const accountPage = async (from) => {
+      let loads = 0; const onLoad = () => loads++; page.on('load', onLoad);
+      await page.locator('.ps-top .ps-account-button >> visible=true').first().click().catch(() => {}); await sleep(700);
+      const sel = '#ps-account-actions a[data-tip="Directory account"]';
+      const top = await page.evaluate((s) => { const a = [...document.querySelectorAll(s)].find((e) => e.getClientRects().length); if (!a) return null; const r = a.getBoundingClientRect(); return a.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)); }, sel).catch(() => null);
+      await page.locator(`${sel} >> visible=true`).first().click({ timeout: 4000 }).catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {}); await sleep(2000);
+      page.off('load', onLoad);
+      const frame = await page.evaluate(() => { const f = [...document.querySelectorAll('.ps-host-frame iframe[data-ps-frame="native"]')].find((e) => e.getClientRects().length); let text = null; try { text = !!f?.contentDocument?.querySelector('.audit-account-page'); } catch {} return f ? { src: new URL(f.src).pathname, text } : null; }).catch(() => null);
+      return { from, onTop: top, loads, frame };
+    };
+    const fromOverview = await accountPage('overview');
+    await record('account-page', 'Accountmenu · pagina van een add-on in het contentvak');
+    say('account-page', fromOverview.onTop === true && fromOverview.loads === 0 && fromOverview.frame?.src === '/directory-account' && fromOverview.frame.text === true, fromOverview);
+    await alpine('d.closeAdminView()'); await sleep(400);
+    if (urls.servers['Survival SMP']) {
+      await goto(urls.servers['Survival SMP'], 3000);
+      const fromServer = await accountPage('server');
+      say('account-page-server', fromServer.onTop === true && fromServer.frame?.src === '/directory-account' && fromServer.frame.text === true, fromServer);
+      await goto(overview, 2500);
+    }
     // Every notification option sits in the bell sheet: this device, messages, Pelican's, and the devices.
     await alpine('d.openAllNotifications()'); await sleep(1500);
     const bell = await page.evaluate(() => { const box = [...document.querySelectorAll('.ps-notify-settings')].find((e) => e.getClientRects().length); if (!box) return { shown: false }; return { shown: true, pelican: !![...box.querySelectorAll('input.ps-switch')].find((i) => /pelican/.test(i.getAttribute('x-on:change') || '') && i.getClientRects().length) }; }).catch(() => null);
@@ -1112,10 +1135,10 @@ const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(
     try {
       const overview = urls.app.find((p) => /App\\Pages\\Overview$/.test(p.class))?.url || '/';
       await goto(overview); await setTheme('dark'); await goto(overview); await sleep(800); await record('overview', 'Klant · overzicht');
-      // A suspended server tells its owner why, inside its card, when an add-on gives a main link (Hosting V26): the note
-      // sits within the card's edges, without power buttons.
+      // A suspended server tells its owner why, inside its card, with the add-on's main link (Hosting V26; the audit's
+      // plugin gives Pay invoice): the note sits within the card's edges, without power buttons.
       const sus = await page.evaluate(() => { const card = [...document.querySelectorAll('.ps-server-card')].find((c) => /Old Factions/.test(c.innerText)); const note = card?.querySelector('.ps-card-suspended'); if (!note || !note.getClientRects().length) return { card: !!card, note: false }; const c = card.getBoundingClientRect(), n = note.getBoundingClientRect(); return { card: true, note: true, inside: n.left >= c.left - 1 && n.right <= c.right + 1 && n.bottom <= c.bottom + 1 && n.top >= c.top - 1, power: [...card.querySelectorAll('.ps-power-wrap')].some((e) => e.getClientRects().length) }; }).catch(() => null);
-      problems.push(`${stand} suspended-card: ${!!sus && sus.card && (!sus.note || (sus.inside && !sus.power)) ? 'ok' : 'WRONG'} ${JSON.stringify(sus)}`);
+      problems.push(`${stand} suspended-card: ${!!sus && sus.card && sus.note && sus.inside && !sus.power ? 'ok' : 'WRONG'} ${JSON.stringify(sus)}`);
       await click('.ps-account-button'); await record('account', 'Klant · accountmenu'); await escape();
       await goto(urls.servers['Survival SMP'], 3000); await record('server-console', 'Klant · console');
       await click('.ps-info-more-button'); await record('server-more', 'Klant · ⋯-menu'); await escape();
