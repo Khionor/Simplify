@@ -49,6 +49,14 @@ return [
         'ok' => 'OK',
         'close' => 'Stäng',
     ],
+    'unsaved' => [
+        'changes_made' => 'Ändringar gjorda',
+        'save' => 'Spara',
+        'discard' => 'Ignorera',
+        'leave_title' => 'Osparade ändringar',
+        'leave_message' => 'Dina ändringar på den här sidan är inte sparade än. Spara innan du lämnar?',
+        'failed' => 'Inte sparat. Kontrollera fälten och försök igen.',
+    ],
     'dashboard' => [
         'eula_accepted_start_sent' => 'EULA godkänd, start skickad',
         'setting_up' => 'Konfigurerar :server',

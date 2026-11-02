@@ -227,6 +227,39 @@ async function round(theme) {
   // Add-on tabs that the main server does not have (Explain, Egg Updates, Server Maker ...), on the first server that opens them.
   const seen = new Set(menu.map(([h]) => rel(h)));
   for (const [name, pages] of Object.entries(urls.server)) for (const p of pages) { if (!p.url || seen.has(rel(p.url)) || screens.some((s) => s.stand === stand && s.id === 'server-' + slug(p.title))) continue; const r = await page.request.get(rel(p.url)).catch(() => null); if (!r || r.status() !== 200) continue; seen.add(rel(p.url)); await goto(p.url, 1500); await record('server-' + slug(p.title), `Server · ${p.title} (${name})`); }
+  // An add-on's form on a server tab (Toolkit's Minecraft settings) uses the core's unsaved changes (P-38): a change
+  // shows the bar, a menu click asks first, Cancel stays. Only checked once the add-on's form opts in.
+  const mc = (urls.server[mainServer] || []).find((p) => p.url && /minecraft/i.test(p.title));
+  if (mc) {
+    await goto(mc.url, 2500);
+    const field = page.locator('[data-simplify-unsaved] input[type="number"] >> visible=true').first();
+    if (await field.count()) {
+      const shown = (sel) => page.evaluate((s) => [...document.querySelectorAll(s)].some((e) => e.getClientRects().length > 0), sel).catch(() => null);
+      const st = { bar: null, asked: null, stayed: null };
+      const before = await field.inputValue().catch(() => '');
+      await field.fill(String((Number(before) || 20) + 1)).catch(() => {});
+      await page.waitForSelector('.s-unsaved:not([hidden])', { timeout: 4000 }).catch(() => {});
+      st.bar = await shown('.s-unsaved');
+      await record('server-addon-unsaved', 'Server · add-on-formulier, Changes made');
+      const link = page.locator('a[wire\\:navigate][href*="/server/"] >> visible=true').first();
+      if (await link.count()) await link.click().catch(() => {});
+      else await page.evaluate(() => { const a = Object.assign(document.createElement('a'), { href: location.pathname.replace(/[^/]+$/, '') }); a.setAttribute('wire:navigate', ''); document.body.append(a); a.click(); }).catch(() => {});
+      await page.waitForSelector('.s-unsaved-dialog', { timeout: 3000 }).catch(() => {});
+      st.asked = await shown('.s-unsaved-dialog');
+      await page.locator('.s-unsaved-dialog .s-unsaved-btn').first().click().catch(() => {});
+      await sleep(400);
+      st.stayed = rel(page.url()) === rel(mc.url) && !(await shown('.s-unsaved-dialog'));
+      st.url = rel(page.url());
+      // Typed back to what it was: no change any more, the bar goes and leaving asks nothing.
+      await field.fill(before).catch(() => {});
+      await page.waitForSelector('.s-unsaved', { state: 'hidden', timeout: 3000 }).catch(() => {});
+      st.gone = !(await shown('.s-unsaved'));
+      const good = st.bar === true && st.asked === true && st.stayed === true && st.gone === true;
+      problems.push(`${stand} server-addon-unsaved: ${good ? 'ok' : 'WRONG'} ${JSON.stringify(st)}`);
+      // Whatever is left, the rest of the round goes on (the browser's own question would stop the next page).
+      page.once('dialog', (dialog) => dialog.accept().catch(() => {}));
+    }
+  }
   // A second server with another game, console only.
   const other = Object.entries(urls.servers).find(([n]) => n === 'Valheim Vikings' || n === 'Rust Weekend');
   if (other) { await goto(other[1], 3000); await record('server2-console', `Server · Console (${other[0]})`); }
@@ -950,13 +983,30 @@ async function fixesFlow() {
     const legacy = await page.evaluate(measureEggs).catch(() => null);
     await record('phone-eggs-legacy', 'Telefoon · Eggs in het legacy-paneel (Pelicans tabel)');
     say('phone-eggs-legacy', legacy && legacy.rows > 0 && legacy.head > 0 && !legacy.wide, legacy);
-    // Simplify's settings save themselves on a phone: no Save button, and a toast after a change.
+    // Nothing saves itself (P-38): Save stays, a change shows "Changes made" with Save and Discard, and leaving asks first.
     await goto(new URL('/admin/simplify', base).href, 2500);
     const save = await vis('.s-save-button, .s-settings > .s-bar button[type="submit"]');
     const sw = page.locator('.s-settings .fi-active :is([role="switch"], input[type="checkbox"]) >> visible=true').first();
-    let toast = null;
-    if (await sw.count()) { await sw.click().catch(() => {}); await page.waitForSelector('.s-saved', { state: 'visible', timeout: 6000 }).catch(() => {}); toast = await vis('.s-saved'); await record('phone-autosave', 'Telefoon · instellingen slaan zelf op'); await sw.click().catch(() => {}); await sleep(2500); }
-    say('phone-autosave', save === false && toast === true, { save, toast });
+    const unsaved = { save, bar: null, asked: null, stayed: null, gone: null };
+    if (await sw.count()) {
+      await sw.click().catch(() => {});
+      await page.waitForSelector('.s-unsaved:not([hidden])', { timeout: 6000 }).catch(() => {});
+      unsaved.bar = await vis('.s-unsaved');
+      await record('phone-unsaved', 'Telefoon · Changes made met Save');
+      // Leaving through a link of the page asks Save, Discard or Cancel; Cancel stays on the page with the change.
+      await page.evaluate(() => { const a = Object.assign(document.createElement('a'), { href: '/admin' }); a.setAttribute('wire:navigate', ''); a.id = 'ps-audit-leave'; a.textContent = '.'; document.body.append(a); a.click(); }).catch(() => {});
+      await page.waitForSelector('.s-unsaved-dialog', { timeout: 3000 }).catch(() => {});
+      unsaved.asked = await vis('.s-unsaved-dialog');
+      await record('phone-unsaved-leave', 'Telefoon · weggaan vraagt eerst');
+      await page.locator('.s-unsaved-dialog .s-unsaved-btn').first().click().catch(() => {});
+      await sleep(300);
+      unsaved.stayed = new URL(page.url()).pathname.endsWith('/admin/simplify') && !(await vis('.s-unsaved-dialog'));
+      // Setting it back is no change any more: the bar goes away.
+      await sw.click().catch(() => {});
+      await page.waitForSelector('.s-unsaved', { state: 'hidden', timeout: 3000 }).catch(() => {});
+      unsaved.gone = !(await vis('.s-unsaved'));
+    }
+    say('phone-unsaved', save === true && unsaved.bar === true && unsaved.asked === true && unsaved.stayed === true && unsaved.gone === true, unsaved);
   }
   // Pull to refresh in the installed app (pull.js): only on the overview (Jeroen 2-11). There a finger pulled down from
   // the top shows the mark and reloads; in the settings a pull must not reload (it sent you back to the overview).

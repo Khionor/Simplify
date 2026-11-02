@@ -49,6 +49,14 @@ return [
         'ok' => 'OK',
         'close' => 'Luk',
     ],
+    'unsaved' => [
+        'changes_made' => 'Ændringer foretaget',
+        'save' => 'Gem',
+        'discard' => 'Kassér',
+        'leave_title' => 'Ikke-gemte ændringer',
+        'leave_message' => 'Dine ændringer på denne side er ikke gemt endnu. Gem dem, før du går?',
+        'failed' => 'Ikke gemt. Tjek felterne og prøv igen.',
+    ],
     'dashboard' => [
         'eula_accepted_start_sent' => 'EULA accepteret, start sendt',
         'setting_up' => 'Sætter :server op',

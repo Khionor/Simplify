@@ -49,6 +49,14 @@ return [
         'ok' => 'Aceptar',
         'close' => 'Cerrar',
     ],
+    'unsaved' => [
+        'changes_made' => 'Cambios realizados',
+        'save' => 'Guardar',
+        'discard' => 'Descartar',
+        'leave_title' => 'Cambios sin guardar',
+        'leave_message' => 'Tus cambios en esta página aún no se han guardado. ¿Guardarlos antes de salir?',
+        'failed' => 'No se guardó. Revisa los campos e inténtalo de nuevo.',
+    ],
     'dashboard' => [
         'eula_accepted_start_sent' => 'EULA aceptada, arranque enviado',
         'setting_up' => 'Preparando :server',

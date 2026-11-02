@@ -49,6 +49,14 @@ return [
         'ok' => 'OK',
         'close' => 'Bezárás',
     ],
+    'unsaved' => [
+        'changes_made' => 'Változtatások történtek',
+        'save' => 'Mentés',
+        'discard' => 'Elvetés',
+        'leave_title' => 'Nem mentett változtatások',
+        'leave_message' => 'A változtatásaid ezen az oldalon még nincsenek mentve. Mentsük, mielőtt elmész?',
+        'failed' => 'Nincs mentve. Ellenőrizd a mezőket, és próbáld újra.',
+    ],
     'dashboard' => [
         'eula_accepted_start_sent' => 'EULA elfogadva, indítás elküldve',
         'setting_up' => 'Beállítás: :server',
