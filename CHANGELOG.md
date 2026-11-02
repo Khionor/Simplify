@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add-ons can give a start page (add-on contract API 5): the server list and the overview open it when an add-on gives one, and Pelican's admin pages then keep Simplify's header on top. The groups of the admin menu are now built on the server.
 - A suspended server's card no longer shows the tops of its CPU and RAM tiles above the note about the suspension.
 - The overview and the server page load less: the code and styles for holidays load only on a day with one.
 - Checks and screen audit take less time. A change to text only (docs, Markdown) skips the panel smoke; tests and pint still run. In the screen audit, dark and light are jobs of their own, side by side, so a run takes half as long; the light job writes to the results branch `…-<stand>-light`. New inputs: `theme`, `parts` (the parts of a round: overview, server, admin, host, seasons, create, extras, notify, klant) and `scope` `changed`, which runs only the parts that the files changed since main can touch (`tests/audit/parts.py`; an unknown file counts as everything). The full audit still runs before every release.
