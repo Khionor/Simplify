@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.5.5
+
 - The line under a server's name (status, software, address) stays one line on narrower screens: a long software name is shortened with … instead of pushing the address to a second line, so every server's page keeps the same height. Between 961 and 1200 px the message of the day box is a little narrower to make room.
 - Pelican's admin pages on a tablet or small window no longer scroll by the height of the menu button at the top.
 - Add-ons can put their own pages in the account menu, such as Server Maker's Steam account. They open inside Simplify, in the content area (add-on contract API 4).
