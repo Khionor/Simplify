@@ -393,13 +393,49 @@ step('admins get the create form of Pelican as a create button', function () use
         throw new RuntimeException('no create button: '.json_encode($create));
     }
 });
-step('host mode: the overview carries the admin tree, the health page and the health checks', function () use ($admin) {
+step('the Admin page: an admin page has Simplify\'s header and the Admin menu, the legacy panel has neither', function () use ($admin) {
     Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('app'));
-    $page = Livewire\Livewire::actingAs($admin)->test(Overview::class)->assertSee('ps-host-tree');
-    $initial = $page->instance()->initial();
-    $pages = collect($initial['admin_pages'][0]['items'] ?? [])->pluck('key');
-    if (! $pages->contains('health') || ! is_array($initial['health_checks']) || ! is_bool($initial['host_mode_auto'])) {
-        throw new RuntimeException('host mode is missing parts: '.json_encode([$pages, $initial['health_checks'], $initial['host_mode_auto']]));
+    $initial = Livewire\Livewire::actingAs($admin)->test(Overview::class)->instance()->initial();
+    $pages = collect($initial['admin_tree'])->flatMap(fn (array $section) => array_column($section['pages'], 'key'));
+    if (! $pages->contains('health') || ! is_array($initial['health_checks']) || ! is_string($initial['admin_url']) || ! str_contains((string) $initial['legacy_url'], 'simplify_legacy=1')) {
+        throw new RuntimeException('the Admin page is missing parts: '.json_encode([$pages, $initial['admin_url'], $initial['legacy_url']]));
+    }
+    $client = new class(app())
+    {
+        use InteractsWithAuthentication, InteractsWithSession, MakesHttpRequests;
+
+        public function __construct(public $app) {}
+    };
+    $client->actingAs($admin);
+    $url = Health::getUrl(panel: 'admin');
+    $page = $client->get($url);
+    expectOk($page, $url);
+    // The header and the menu as @persist draws them, and the class head.blade.php sets (the head's own script names
+    // them too, so the markup itself is what counts).
+    foreach (['<div x-persist="simplify-admin-top"', '<div x-persist="simplify-admin-side"', "classList.add('ps-shell'"] as $part) {
+        if (! str_contains($page->getContent(), $part)) {
+            throw new RuntimeException('the Admin page has no '.$part);
+        }
+    }
+    // Only Create server's popup has a frame (filled when it opens); the page itself is not in one.
+    if (preg_match_all('/<iframe\b(?![^>]*\bps-create-frame\b)/', $page->getContent()) > 0) {
+        throw new RuntimeException('the Admin page uses a frame');
+    }
+    $legacy = $client->get($url.'?simplify_legacy=1');
+    if (! $legacy->isRedirect() || str_contains((string) $legacy->headers->get('Location'), 'simplify_legacy')) {
+        throw new RuntimeException('?simplify_legacy=1 does not lead to the page itself: HTTP '.$legacy->getStatusCode());
+    }
+    $plain = $client->get($url);
+    expectOk($plain, $url);
+    if (str_contains($plain->getContent(), '<div x-persist="simplify-admin-side"') || str_contains($plain->getContent(), '<div x-persist="simplify-admin-top"')) {
+        throw new RuntimeException('the legacy panel still has Simplify\'s header or menu');
+    }
+    if (! str_contains($plain->getContent(), 's-return') || ! str_contains($plain->getContent(), 'simplify_legacy=0')) {
+        throw new RuntimeException('the legacy panel has no Back to Simplify button');
+    }
+    $client->get($url.'?simplify_legacy=0');
+    if (! str_contains($client->get($url)->getContent(), '<div x-persist="simplify-admin-side"')) {
+        throw new RuntimeException('Back to Simplify does not bring the Admin page back');
     }
 });
 step('Pelican\'s Health page shows in Simplify\'s look', function () use ($admin) {
@@ -473,8 +509,8 @@ step('add-ons give server links, customer links and host mode', function ($app) 
     }
     Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('app'));
     $own = Livewire\Livewire::actingAs($admin)->test(Overview::class)->instance()->initial();
-    if ($own['customer'] !== [] || $own['host_mode_auto'] !== true) {
-        throw new RuntimeException('admins get customer links or no host mode default: '.json_encode([$own['customer'], $own['host_mode_auto']]));
+    if ($own['customer'] !== []) {
+        throw new RuntimeException('admins get customer links: '.json_encode($own['customer']));
     }
     // A customer link with an icon is also in the account menu, for admins too (as in 0.7.0); one without stays in the greeting.
     $account = $own['account_links'];

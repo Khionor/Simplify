@@ -25,6 +25,21 @@
             }
         }
     } catch {}
+    // The Admin page and the account pages (V52): Simplify's header, the admin menu beside, Pelican's page as a card
+    // (simplify.css, html.ps-shell). The legacy panel (?simplify_legacy=1) shows them as Pelican does.
+    @if (\Simplify\Core\Filament\Admin\AdminTop::here())
+    if (!window.frameElement) document.documentElement.classList.add('ps-shell'@if (\Simplify\Core\Filament\Admin\AdminTop::menu()), 'ps-shell-menu'@endif);
+    @endif
+    // wire:navigate keeps <html> as it was: the page that came in says by its header and menu whether it is one.
+    if (!window.simplifyShellWatch) {
+        window.simplifyShellWatch = true;
+        document.addEventListener('livewire:navigated', () => {
+            if (window.frameElement) return;
+            const root = document.documentElement;
+            root.classList.toggle('ps-shell', !!document.querySelector('[x-persist="simplify-admin-top"]'));
+            root.classList.toggle('ps-shell-menu', !!document.querySelector('[x-persist="simplify-admin-side"]'));
+        });
+    }
     if ('serviceWorker' in navigator && window.isSecureContext) {
         addEventListener('load', () => navigator.serviceWorker.register(@js(route('simplify.worker')), { scope: @js(\Simplify\Core\WebApp\WebApp::scope()) }).catch(() => {}));
     }
@@ -32,7 +47,7 @@
     // the card scrolls inside (simplify.css). In host mode's frame the frame itself already has the window's height.
     // The end of the setup is one card in host mode too, so it fits there as well. The settings on a phone scroll with the page.
     {
-        const fitCards = document.documentElement.classList.contains('ps-frame') ? '.s-done' : '.s-settings-tabs.fi-vertical, .s-health, .s-people, .s-fit, .s-done';
+        const fitCards = document.documentElement.matches('.ps-frame, .ps-shell') ? '.s-done' : '.s-settings-tabs.fi-vertical, .s-health, .s-people, .s-fit, .s-done';
         let queued = 0;
         const fit = () => {
             queued = 0;
@@ -41,6 +56,23 @@
                 // On a phone the settings' menu sits above the settings, so a fitted card would leave them a few lines: the page scrolls.
                 if (innerWidth <= 600 && card.matches('.s-settings-tabs')) continue;
                 const box = card.getBoundingClientRect();
+                // In the Admin page's card (html.ps-shell) the card scrolls, not the page: fit what is left of the card (on a
+                // low window that can be less than the page's usual minimum).
+                const shell = card.closest('html.ps-shell:not(.ps-frame) .fi-layout > .fi-main-ctn');
+                if (shell) {
+                    const room = shell.getBoundingClientRect();
+                    const tall = Math.max(160, Math.floor(room.bottom - box.top - (shell.scrollHeight - shell.scrollTop - (box.bottom - room.top))));
+                    let fitted = tall;
+                    card.style.setProperty('--s-fit', fitted + 'px');
+                    // Whatever still grows with the card (its paddings, a page's minimum height) is taken off again.
+                    for (let i = 0; i < 3; i++) {
+                        const over = shell.scrollHeight - shell.clientHeight;
+                        if (over <= 0 || fitted <= 160) break;
+                        fitted = Math.max(160, fitted - over);
+                        card.style.setProperty('--s-fit', fitted + 'px');
+                    }
+                    continue;
+                }
                 const below = document.documentElement.scrollHeight - (box.bottom + scrollY);
                 const height = Math.max(320, Math.floor(innerHeight - (box.top + scrollY) - below));
                 card.style.setProperty('--s-fit', height + 'px');
