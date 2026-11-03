@@ -79,13 +79,19 @@ async function record(id, title, extra = {}) {
   fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify({ base, screens, problems }, null, 1));
 }
 // The Admin page (V52): the shield opens Pelican's admin pages inside Simplify without a frame: Simplify's header, the
-// Admin menu on the left (on a phone a page of its own that the bottom bar's Admin opens) and the page in a card beside it. The menu stays
+// Admin menu on the left (on a phone a page of its own that the bottom bar's Admin opens) and the page beside it. The menu stays
 // while its links change the page (wire:navigate). The legacy panel shows the same pages as Pelican draws them.
 const adminState = () => page.evaluate(() => {
   const side = document.querySelector('.ps-admin-side'), card = document.querySelector('.fi-layout > .fi-main-ctn');
   const shown = (s) => [...document.querySelectorAll(s)].some((e) => e.getClientRects().length && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden');
   return { shell: document.documentElement.classList.contains('ps-shell-menu'), side: !!side, kept: !!side && side.dataset.auditMark === '1', /* a page in a frame; the embed's own preview is content */ frames: document.querySelectorAll('.fi-main-ctn iframe[data-ps-frame]:not(.ps-create-frame)').length,
-    header: shown('.ps-admin-top .ps-top'), pelicanBars: shown('.fi-sidebar, .fi-topbar'), pageScroll: document.documentElement.scrollHeight - innerHeight, card: card ? getComputedStyle(card).overflowY : null, path: location.pathname };
+    header: shown('.ps-admin-top .ps-top'), pelicanBars: shown('.fi-sidebar, .fi-topbar'), pageScroll: document.documentElement.scrollHeight - innerHeight, card: card ? getComputedStyle(card).overflowY : null, path: location.pathname,
+    // Computers: the page's own buttons sit on the breadcrumb's row (its title bar), not on a row of their own below it.
+    offRow: (() => { const crumb = document.querySelector('.ps-admin-crumb'); if (!crumb || innerWidth <= 600 || !crumb.getClientRects().length) return 0; const r = crumb.getBoundingClientRect(); return [...document.querySelectorAll('.fi-main .fi-header .fi-header-actions-ctn :is(button, a)')].filter((e) => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden').filter((e) => { const b = e.getBoundingClientRect(), y = b.top + b.height / 2; return y < r.top || y > r.bottom; }).length; })(),
+    // The page's box ends inside the window (its content scrolls in it); when not, where its height comes from.
+    tall: (() => { const ctn = document.querySelector('.fi-layout > .fi-main-ctn'), lay = document.querySelector('.fi-layout'); if (!ctn || innerWidth <= 600 || ctn.getBoundingClientRect().bottom <= innerHeight + 2) return null; const cs = getComputedStyle(ctn), ls = getComputedStyle(lay), r = (e) => Math.round(e.getBoundingClientRect().top) + '..' + Math.round(e.getBoundingClientRect().bottom); return { ctn: r(ctn) + ' h ' + cs.height + ' max ' + cs.maxHeight + ' row ' + cs.gridRow + ' as ' + cs.alignSelf, layout: r(lay) + ' h ' + ls.height + ' rows ' + ls.gridTemplateRows + ' ov ' + ls.overflow + ' ' + ls.display, kids: [...lay.children].map((k) => (k.getAttribute('x-persist') || k.className.split(' ')[0]) + ' ' + r(k) + ' ' + getComputedStyle(k).gridRow + ' ' + getComputedStyle(k).display), body: r(document.body) + ' ' + getComputedStyle(document.body).height }; })(),
+    // Nothing of the page starts under the breadcrumb's row.
+    underCrumb: (() => { const crumb = document.querySelector('.ps-admin-crumb'), body = document.querySelector('.fi-main .fi-page-main'), ctn = document.querySelector('.fi-layout > .fi-main-ctn'); if (!crumb || !body || innerWidth <= 600 || !ctn || ctn.scrollTop > 0) return false; if (body.getBoundingClientRect().top >= crumb.getBoundingClientRect().bottom - 1) return false; const main = document.querySelector('.fi-main'), head = document.querySelector('.fi-main .fi-header'), r = (e) => e ? Math.round(e.getBoundingClientRect().top) + '..' + Math.round(e.getBoundingClientRect().bottom) : null; return { crumb: r(crumb), ctn: r(ctn), main: r(main), pad: main && getComputedStyle(main).paddingTop, head: head && getComputedStyle(head).display + ' ' + r(head) + ' mt ' + getComputedStyle(head).marginTop, body: r(body), parents: [...(function* (e) { while (e && e !== main) { yield e.className.split(' ')[0] + ' ' + r(e) + ' ' + getComputedStyle(e).display + ' pt ' + getComputedStyle(e).paddingTop + ' mt ' + getComputedStyle(e).marginTop; e = e.parentElement; } })(body)], doc: document.scrollingElement.scrollTop }; })() };
 }).catch(() => null);
 const markAdminSide = () => page.evaluate(() => { const side = document.querySelector('.ps-admin-side'); if (side) side.dataset.auditMark = '1'; }).catch(() => {});
 const openAdminMenu = async () => { if (phone() && !(await page.locator('.ps-admin-side.menu-open').count())) { await page.locator('.ps-admin-side .ps-tabbar button[aria-controls="ps-admin-side"]').first().click().catch(() => {}); await sleep(700); } };
@@ -133,6 +139,33 @@ const adminPage = async (overview) => {
     const again = await look(); await record('admin-nav-look', 'Admin-pagina · zelfde stijl na menuklikken');
     const diff = first && again ? Object.keys(first).filter((k) => JSON.stringify(first[k]) !== JSON.stringify(again[k])) : ['missing'];
     say('admin-nav-look', !!first && !!first.card && diff.length === 0 && loads === 0 && /\/admin\/servers/.test(page.url()), { diff, loads, first, again });
+  }
+  // Computers (Jeroen 3-11): the Admin page belongs to the overview instead of feeling like a separate site. The same
+  // header (Healthy, Create server), the menu and the page together as wide as it, both without a card and without a
+  // Servers tab; the breadcrumb (All servers › …) is the title, the page's buttons sit on its row, and every crumb and
+  // button is itself under its middle. The shield and All servers lead back to the overview, whose header is as wide.
+  if (!phone()) {
+    const desk = await page.evaluate(() => {
+      const shown = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden';
+      const box = (e) => { const cs = e && getComputedStyle(e); return !!cs && (cs.borderTopWidth !== '0px' || cs.boxShadow !== 'none' || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor)); };
+      const top = document.querySelector('.ps-admin-top .ps-top'), side = document.querySelector('.ps-admin-side .ps-host-side'), card = document.querySelector('.fi-layout > .fi-main-ctn'), crumb = document.querySelector('.ps-admin-crumb');
+      if (!top || !side || !card) return null;
+      const t = top.getBoundingClientRect(), s = side.getBoundingClientRect(), c = card.getBoundingClientRect(), r = shown(crumb) ? crumb.getBoundingClientRect() : null;
+      const hit = (e) => { const b = e.getBoundingClientRect(), at = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!at && (at === e || e.contains(at)); };
+      const actions = [...document.querySelectorAll('.fi-main .fi-header .fi-header-actions-ctn :is(button, a)')].filter(shown);
+      const parts = crumb ? [...crumb.querySelectorAll('a, button')].filter(shown) : [];
+      return { top: [Math.round(t.left), Math.round(t.right)], menu: Math.round(s.left), page: Math.round(c.right), crumb: r ? crumb.innerText.replace(/\s+/g, ' ').trim() : null,
+        health: shown(top.querySelector('.ps-health-pill')), create: [...top.querySelectorAll('.ps-create-button')].some(shown), tabs: !!document.querySelector('.ps-admin-side .ps-host-tabs'),
+        menuBox: box(side), pageBox: box(card), heading: [...document.querySelectorAll('.fi-main .fi-header-heading')].some(shown),
+        onRow: !r || actions.every((a) => { const b = a.getBoundingClientRect(); return b.top + b.height / 2 >= r.top && b.top + b.height / 2 <= r.bottom; }), actions: actions.length,
+        blocked: [...parts, ...actions].filter((e) => !hit(e)).map((e) => e.innerText.trim().slice(0, 30)), shield: top.querySelector('.ps-nav-admin')?.getAttribute('aria-current') };
+    }).catch(() => null);
+    say('admin-desktop', !!desk && Math.abs(desk.top[0] - desk.menu) <= 2 && Math.abs(desk.top[1] - desk.page) <= 2 && desk.health && desk.create && !desk.tabs && !desk.menuBox && !desk.pageBox
+      && !!desk.crumb && /^All servers/.test(desk.crumb) && !desk.heading && desk.onRow && !desk.blocked.length && desk.shield === 'page', desk);
+    await page.locator('.ps-admin-crumb a.ps-admin-crumb-home').first().click().catch(() => {}); await page.waitForLoadState('domcontentloaded').catch(() => {}); await settle(page, 1200);
+    const back = await page.evaluate(() => { const t = document.querySelector('.ps-top')?.getBoundingClientRect(); return { path: location.pathname, shell: document.documentElement.classList.contains('ps-shell'), top: t ? [Math.round(t.left), Math.round(t.right)] : null }; }).catch(() => null);
+    say('admin-desktop-back', !!back && !!desk && !back.shell && !!back.top && Math.abs(back.top[0] - desk.top[0]) <= 2 && Math.abs(back.top[1] - desk.top[1]) <= 2, { back, admin: desk?.top });
+    if (!(await shieldTo(overview))) return say('admin-page', false, { note: 'no shield link on the overview' });
   }
   // The legacy panel: the same page as Pelican draws it, and its Back to Simplify button clears that again.
   if (!(await page.locator('.ps-admin-top .ps-account-button >> visible=true').count())) { await page.locator('.ps-admin-top .ps-mobile-menu >> visible=true').first().click().catch(() => {}); await sleep(500); }
@@ -396,17 +429,20 @@ async function round(theme) {
   }
 
   if (want('host')) {
-  // The Admin page: every section and page of its menu, the menu kept beside each page, and the servers per node.
+  // The Admin page: every section and page of its menu, and the menu kept beside each page.
   if (await shieldTo(overview)) {
     await record('host', 'Admin-pagina');
     if (onPhone) { await openAdminMenu(); await record('host-phone-menu', 'Admin-pagina · telefoon, menu als pagina'); await escape(); }
-    const lost = [], visited = [];
+    const lost = [], visited = [], offRow = [], underCrumb = [], tall = [];
     const go = async (locator, id, title) => {
       await markAdminSide(); await locator.click().catch(() => {}); await settle(page, 1800);
       // A page that still loads its table (Plugins) can be taller for a moment: measure once the card has its place.
       await page.waitForFunction(() => { const c = document.querySelector('.fi-layout > .fi-main-ctn'); return !c || c.getBoundingClientRect().bottom <= innerHeight + 1; }, null, { timeout: 4000 }).catch(() => {});
       const st = await adminState(); await record(id, title); visited.push(id);
       if (!st || !st.kept || !st.shell || st.frames) lost.push({ id, ...st });
+      if (st?.offRow) offRow.push(id);
+      if (st?.tall) tall.push({ id, ...st.tall });
+      if (st?.underCrumb) underCrumb.push(underCrumb.length ? id : { id, ...st.underCrumb });
     };
     const groups = page.locator('.ps-admin-side .ps-host-group'); const gn = await groups.count();
     for (let i = 0; i < gn; i++) {
@@ -430,14 +466,9 @@ async function round(theme) {
     await openAdminMenu();
     if (await page.locator('.ps-admin-side .ps-host-health-open >> visible=true').count()) await go(page.locator('.ps-admin-side .ps-host-health-open').first(), 'host-health', 'Admin-pagina · Health');
     problems.push(`${stand} admin-menu-kept: ${visited.length && !lost.length ? 'ok' : 'WRONG'} ${JSON.stringify({ pages: visited.length, lost: lost.slice(0, 5) })}`);
-    await openAdminMenu();
-    if (await click('.ps-admin-side .ps-host-tabs button:nth-child(2)', 1800)) {
-      await record('host-servers', 'Admin-pagina · servers per node');
-      const rows = await page.locator('.ps-admin-side .ps-host-server >> visible=true').count();
-      problems.push(`${stand} admin-servers: ${rows > 0 ? 'ok' : 'WRONG'} ${JSON.stringify({ rows })}`);
-      if (rows && await click('.ps-admin-side .ps-host-server', 3000)) await record('host-server', 'Admin-pagina · server geopend');
-      if (await shieldTo(overview)) { await openAdminMenu(); await click('.ps-admin-side .ps-host-tabs button:nth-child(1)', 1000); if (onPhone) await escape(); }
-    }
+    if (!onPhone) problems.push(`${stand} admin-desktop-rows: ${visited.length && !offRow.length ? 'ok' : 'WRONG'} ${JSON.stringify({ pages: visited.length, offRow })}`);
+    if (!onPhone) problems.push(`${stand} admin-desktop-box: ${visited.length && !tall.length ? 'ok' : 'WRONG'} ${JSON.stringify({ pages: visited.length, tall })}`);
+    if (!onPhone) problems.push(`${stand} admin-desktop-under: ${visited.length && !underCrumb.length ? 'ok' : 'WRONG'} ${JSON.stringify({ pages: visited.length, underCrumb })}`);
   } else problems.push(`${stand} host: WRONG no shield link to the Admin page`);
   }
   if (want('seasons') && ['d1440', 'tablet768', 'phone390'].includes(stand.split('-')[0])) await seasons(theme);
