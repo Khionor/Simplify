@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Light theme: the console's scrollbar is light again, so you can see it on the dark console.
 - Legacy panel: Simplify's settings look as Pelican's pages do. With many add-ons the row of tabs goes onto a second line instead of running off the page with a scrollbar (phones keep one row that scrolls).
 - Add-on buttons are back where Simplify hides a page's header. On a server's console page an add-on's button, such as Explain, sits in the console's title row next to the size tools; Pelican's power buttons stay in the server card. In host mode, a button that an add-on puts in a page's header, such as Explain on Logs, is in the title bar, and the window it opens shows.
 - Plugins page in Admin: the categories (All, Plugin, Theme, Language Pack) are a filter button in the list's toolbar, on one row with sort, search and the import buttons. A choice changes only the list.
