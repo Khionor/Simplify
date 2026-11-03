@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Phones: Admin in the bottom bar opens the admin menu as a page of its own, with the same tree as on a computer and Health at the bottom. A link opens its page, and the page's title is where you are, such as Servers › Eggs; tap the group, tap Admin again or swipe from the left edge to go back to the menu. The separate Menu tab is gone, so the bar is Servers, New and Admin again, and the page sits straight on the background without a card around it.
+- The Admin page has the panel's accent colour again, such as New in the bottom bar on a phone.
 - The installed app on an iPhone keeps the bottom bar clear of the home bar after a click in a menu too. It no longer drops a little and loses its room at the bottom when another page opens.
 - Add-ons can ask whether the panel runs in friends mode: `PanelSettings::friendsMode()` (ADDONS.md).
 - Pages no longer open white. While Simplify starts, the overview, a server's page and the Admin page show their shapes as grey placeholders in your light or dark theme, and the real page takes their place.
