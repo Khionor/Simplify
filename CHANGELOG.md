@@ -27,6 +27,7 @@
 - The console page loads without a jump: the empty card that stood above the console for a moment while Pelican's numbers loaded no longer shows, so the console stays where it is.
 - Phones: the window with all notifications closes with a pull down, like the menus: from its top bar, or from the list when it is scrolled to the top. Popups and menus follow your thumb while you drag them, spring back after a short pull, slide away after a longer one, and stay put on a sideways swipe. Closing them never reloads the page.
 - Website embed: the preview of the saved list follows the theme instead of showing a white block in dark mode, and is only as big as the cards it shows. The iframe code for other websites no longer shows a white block on a dark website either.
+- Phones: every admin list fits the screen. A row shows the icon, the name and its buttons on the first line and the other columns under the name, on more lines when needed, so nothing scrolls sideways. The buttons, search and filter share one row right under the breadcrumb; the search field gets smaller when room runs out, down to just its magnifier, and opens over the row when tapped.
 
 ## 2.0.0-beta.3
 
