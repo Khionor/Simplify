@@ -116,6 +116,24 @@ const adminPage = async (overview) => {
   // Always end inside Simplify, so a failed step above does not leave the rest of the round in the legacy panel.
   await goto(overview + (overview.includes('?') ? '&' : '?') + 'simplify_legacy=0', 600);
 };
+// The Filter (V52, Khion): one chip with Show, Game, Node and Group in one menu (a sheet on a phone); Group only when the
+// account has server groups. A choice narrows the servers and names itself on the chip; All takes it back.
+const filterCheck = async () => {
+  const say = (step, ok, detail) => problems.push(`${stand} ${step}: ${ok ? 'ok' : 'WRONG'} ${JSON.stringify(detail)}`);
+  const want = await alpine('return { sections: d.filterSections().map((x) => x.key), groups: d.overviewGroups.length, servers: d.visibleServers().length }');
+  if (!want || !want.sections.length) return say('overview-filter', !!want, { note: 'nothing to filter on this panel', want });
+  if (!(await click('.ps-filter-button', 700))) return say('overview-filter', false, { note: 'no Filter button' });
+  const shown = await page.evaluate(() => [...document.querySelectorAll('#ps-filter-menu .ps-filter-section')].filter((e) => e.getClientRects().length).map((e) => e.querySelector('.ps-label').textContent.trim())).catch(() => null);
+  await record('overview-filter', 'Overzicht · Filter open');
+  const pick = page.locator('#ps-filter-menu .ps-filter-section .ps-menu-item[aria-checked="false"] >> visible=true').first();
+  const label = (await pick.innerText().catch(() => '')).trim();
+  await pick.click().catch(() => {}); await sleep(700);
+  const after = await alpine('return { servers: d.visibleServers().length, label: d.filterLabel(), open: d.filterMenu }');
+  await record('overview-filtered', 'Overzicht · gefilterd');
+  await alpine(`for (const x of d.filterSections()) d.setFilter(x.key, 'all'); return true;`); await sleep(500);
+  const back = await alpine('return d.visibleServers().length');
+  say('overview-filter', Array.isArray(shown) && shown.length === want.sections.length && (want.groups > 0) === want.sections.includes('group') && !!after && !after.open && after.label.includes(label) && after.servers <= want.servers && back === want.servers, { want, shown, label, after, back });
+};
 // Host health card and its fold-open tab are one hover zone (1.4.5): pointing at either gives the same colours.
 const healthHover = async (where) => {
   const card = page.locator('.ps-host-health >> visible=true').first(), tab = page.locator('.ps-health-tab >> visible=true').first();
@@ -137,9 +155,11 @@ const click = async (sel, ms = 600) => { const l = page.locator(sel).first(); if
 const escape = async () => { await page.keyboard.press('Escape'); await sleep(300); };
 const phone = () => VIEWPORTS[stand.split('-')[0]].width <= 600;
 // Phones (1.5.4) reach the overview's menus from the bottom bar: server groups and the overview's look under Customize. Elsewhere, and on wider screens, the button in the top bar.
-const PHONE_ROUTE = { overviewAppearance: ['.ps-tab-customize > .ps-tab', '#ps-tab-customize-menu button:nth-of-type(2)'], overviewGroupsButton: ['.ps-tab-customize > .ps-tab', '#ps-tab-customize-menu button:nth-of-type(1)'] };
-// Server groups open from Customize on every screen size (V43).
-const DESK_ROUTE = { overviewGroupsButton: ['[x-ref="overviewAppearance"]', '#ps-overview-appearance-menu .ps-customize-go'] };
+// Customize (the look of the overview and the server pages) is in the account menu on every screen (Jeroen 3-11);
+// server groups open from inside Customize.
+const CUSTOMIZE = ['.ps-top .ps-account-button', '#ps-account-actions button:has(use[href="#ps-wand"])'];
+const PHONE_ROUTE = { overviewAppearance: CUSTOMIZE, overviewGroupsButton: [...CUSTOMIZE, '#ps-overview-appearance-menu .ps-customize-go'] };
+const DESK_ROUTE = PHONE_ROUTE;
 const openRef = async (ref, ms) => { if (!phone() && DESK_ROUTE[ref]) { for (const sel of DESK_ROUTE[ref]) if (!(await click(sel, ms))) return false; return true; } if (phone() && PHONE_ROUTE[ref] && (await page.locator('.ps-tabbar >> visible=true').count())) { for (const sel of PHONE_ROUTE[ref]) if (!(await click(sel, ms))) return false; return true; } return click(`[x-ref="${ref}"]`, ms); };
 
 async function login(email, password) {
@@ -186,6 +206,7 @@ async function round(theme) {
   await openRef('overviewAppearance'); await record('overview-customize', 'Weergave aanpassen open'); await escape();
   await openNav();
   await openRef('overviewGroupsButton'); await record('overview-groups', 'Servergroepen open'); await escape();
+  await filterCheck();
   if (await click('.ps-health-pill')) await record('overview-health', 'Gezondheid van de host open'); await escape();
   // Host health card's tab under its bottom edge (1.4.4): the nodes fold open.
   if (await click('.ps-health-tab', 900)) { await record('overview-health-nodes', 'Host health, nodes uitgeklapt'); await click('.ps-health-tab', 600); }
@@ -303,7 +324,7 @@ async function round(theme) {
   for (const p of admin) {
     if (/Setup$|ViewLogs$|Dashboard$/.test(p.class)) continue;
     await goto(p.url, 1200); await record('admin-' + slug(p.title), 'Beheer · ' + p.title);
-    const tabs = page.locator('main [role=tab], .fi-sc-tabs-tab, .s-settings-tabs [role=tab], .s-segment');
+    const tabs = page.locator('main [role=tab]:visible, .fi-sc-tabs-tab:visible, .s-settings-nav a[data-tab], .s-segment');
     const n = await tabs.count();
     for (let i = 1; i < Math.min(n, 9); i++) { await tabs.nth(i).click().catch(() => {}); await sleep(900); await record(`admin-${slug(p.title)}-tab${i}`, `Beheer · ${p.title}, tabblad ${i + 1}`); }
     if (/RoleResource|UserResource|ServerResource|NodeResource|EggResource/.test(p.class)) { const edit = page.locator('.fi-ta-row a[href*="/edit"], .fi-ta-row a[href*="/admin/"]').first(); if (await edit.count()) { const h = await edit.getAttribute('href'); if (h) { await goto(h, 1500); await record('admin-' + slug(p.title) + '-edit', 'Beheer · ' + p.title + ', bewerken'); const t2 = page.locator('main [role=tab], .fi-sc-tabs-tab'); const m = await t2.count(); for (let i = 1; i < Math.min(m, 7); i++) { await t2.nth(i).click().catch(() => {}); await sleep(800); await record(`admin-${slug(p.title)}-edit-tab${i}`, `Beheer · ${p.title}, bewerken, tabblad ${i + 1}`); } } } }
@@ -323,8 +344,7 @@ async function round(theme) {
       // A page that still loads its table (Plugins) can be taller for a moment: measure once the card has its place.
       await page.waitForFunction(() => { const c = document.querySelector('.fi-layout > .fi-main-ctn'); return !c || c.getBoundingClientRect().bottom <= innerHeight + 1; }, null, { timeout: 4000 }).catch(() => {});
       const st = await adminState(); await record(id, title); visited.push(id);
-      // Simplify's own settings still show Pelican's settings tabs in frames; the settings tabs (V52 part C) take them out.
-      if (!st || !st.kept || !st.shell || (st.frames && st.path !== '/admin/simplify')) lost.push({ id, ...st });
+      if (!st || !st.kept || !st.shell || st.frames) lost.push({ id, ...st });
     };
     const groups = page.locator('.ps-admin-side .ps-host-group'); const gn = await groups.count();
     for (let i = 0; i < gn; i++) {
@@ -835,17 +855,18 @@ async function fixesFlow() {
     const fresh = await browser.newContext({ viewport: page.viewportSize(), baseURL: base, storageState: await page.context().storageState() });
     const p2 = await fresh.newPage(); await quiet(p2);
     await p2.goto(new URL('/admin/simplify', base).href, { waitUntil: 'domcontentloaded' }).catch(() => {}); await sleep(3000);
-    const fl = await p2.evaluate(() => { const c = document.querySelector('.s-settings-tabs.fi-vertical'); if (!c) return null; const f = [...document.querySelectorAll('footer, .fi-footer, [data-ps-footer]')].find((e) => e.getClientRects().length && e.getBoundingClientRect().height > 0); const bottom = Math.round(c.getBoundingClientRect().bottom), end = f ? Math.round(f.getBoundingClientRect().top) : innerHeight; return { bottom, end, gap: end - bottom, page: document.documentElement.scrollHeight, window: innerHeight, fit: c.style.getPropertyValue('--s-fit'), footer: !!f }; }).catch(() => null);
+    // In the Admin page's card (V52) the card scrolls and the page does not; the settings' row of tabs is there at once.
+    const fl = await p2.evaluate(() => ({ nav: !!document.querySelector('.s-settings-nav'), page: document.documentElement.scrollHeight, window: innerHeight })).catch(() => null);
     const shot = page; page = p2; await record('settings-first-load', 'Instellingen · eerste paginalaad, lege cache'); page = shot;
     await fresh.close().catch(() => {});
-    say('settings-first-load', fl && fl.gap <= 48 && fl.page <= fl.window + 2, fl);
+    say('settings-first-load', !!fl && fl.nav && fl.page <= fl.window + 2, fl);
   }
   if (phone()) {
     await goto('/admin/simplify', 2000);
-    await click('.s-settings-tabs [role=tab]:has-text("Appearance"), .s-settings-tabs button:has-text("Appearance")', 900);
+    await click('.s-settings-nav a:has-text("Appearance")', 900);
     await record('settings-phone', 'Instellingen · telefoon');
-    const st = await page.evaluate(() => { const p = document.querySelector('.s-settings-tabs > .fi-sc-tabs-tab.fi-active'); if (!p) return null; return { pane: p.clientHeight, content: p.scrollHeight, window: innerHeight }; }).catch(() => null);
-    say('settings-phone', st && st.content <= st.pane + 4, st);
+    const st = await page.evaluate(() => ({ nav: !!document.querySelector('.s-settings-nav'), page: document.documentElement.scrollHeight, window: innerHeight })).catch(() => null);
+    say('settings-phone', !!st && st.nav && st.page <= st.window + 2, st);
     await goto('/admin/simplify-setup', 2000); await record('setup-phone', 'Setup · telefoon');
     const su = await page.evaluate(() => { const w = document.querySelector('.s-setup'), s = w && w.querySelector('.fi-sc-wizard-step.fi-active'); if (!s) return null; const r = s.getBoundingClientRect(); return { step: Math.round(r.height), inner: s.scrollHeight <= s.clientHeight + 4, width: Math.round(r.width) }; }).catch(() => null);
     say('setup-phone', su && su.step > 120 && su.inner && su.width > 250, su);
@@ -940,7 +961,7 @@ async function fixesFlow() {
     await goto(overview, 2500); await ready();
     const top = { menuButton: await vis('.ps-mobile-menu'), bell: await vis('.ps-top [x-ref="notifyButton"]'), account: await vis('.ps-top .ps-account-button'), servers: await page.evaluate(() => [...document.querySelectorAll('.ps-tabbar .ps-tab')].filter((b) => b.getClientRects().length).map((b) => b.innerText.trim())).catch(() => null) };
     await record('phone-frame-overview', 'Telefoon · overzicht: bel en account bovenin, balk onderin');
-    say('phone-frame-overview', top.menuButton === false && top.bell && top.account && Array.isArray(top.servers) && !top.servers.includes('Servers') && top.servers.length >= 2, top);
+    say('phone-frame-overview', top.menuButton === false && top.bell && top.account && Array.isArray(top.servers) && top.servers[0] === 'Servers' && top.servers.includes('Admin') && !top.servers.includes('Customize'), top);
     await page.locator('.ps-top [x-ref="notifyButton"]').first().click().catch(() => {}); await sleep(900);
     const bell = await sheet('#ps-notify-menu'); await record('phone-sheet-bell', 'Telefoon · meldingen als blad');
     say('phone-sheet-bell', isSheet(bell, 0.85), bell);
@@ -957,9 +978,9 @@ async function fixesFlow() {
     const after = await page.evaluate(() => { const m = document.getElementById('ps-notify-menu'); const ps = document.querySelector('.ps'); return { tap: window.__tap, menu: ps && ps._x_dataStack ? ps._x_dataStack[0].notifyMenu : null, style: m ? m.getAttribute('style') : null, menus: document.querySelectorAll('#ps-notify-menu').length, roots: document.querySelectorAll('.ps').length }; }).catch(() => null);
     const closed = { open: await vis('#ps-notify-menu'), url: page.url() === before, hit, after, ms: gone };
     say('phone-sheet-close', closed.open === false && closed.url, closed);
-    await page.locator('.ps-tabbar .ps-tab-customize > .ps-tab').first().click().catch(() => {}); await sleep(700);
-    const custom = await sheet('#ps-tab-customize-menu'); await record('phone-sheet-customize', 'Telefoon · Customize als blad');
-    await page.locator('#ps-tab-customize-menu .ps-menu-item').first().click().catch(() => {}); await sleep(900);
+    for (const sel of CUSTOMIZE) { await page.locator(sel).first().click().catch(() => {}); await sleep(700); }
+    const custom = await sheet('#ps-overview-appearance-menu'); await record('phone-sheet-customize', 'Telefoon · Customize (accountmenu) als blad');
+    await page.locator('#ps-overview-appearance-menu .ps-customize-go').first().click().catch(() => {}); await sleep(900);
     const groups = await sheet('#ps-overview-groups-menu'); await record('phone-sheet-groups', 'Telefoon · Server groups als blad');
     say('phone-sheet-customize', isSheet(custom) && isSheet(groups), { custom, groups });
     await escape();
@@ -980,7 +1001,7 @@ async function fixesFlow() {
     const tabs = await page.evaluate(() => [...document.querySelectorAll('.ps-admin-side .ps-tabbar .ps-tab')].filter((b) => b.getClientRects().length).map((b) => b.innerText.trim())).catch(() => null);
     await openAdminMenu();
     const menu = await sheet('.ps-admin-side.menu-open .ps-host-side'); await record('phone-frame-host', 'Telefoon · Admin-pagina, menu als blad');
-    say('phone-frame-host', Array.isArray(tabs) && tabs.length === 3 && isSheet(menu), { tabs, menu });
+    say('phone-frame-host', Array.isArray(tabs) && tabs[0] === 'Servers' && tabs.includes('Admin') && tabs[tabs.length - 1] === 'Menu' && isSheet(menu), { tabs, menu });
     await escape();
     // Pelican's lists inside Simplify (the Admin page) are short rows: no checkboxes, no column titles and no egg
     // descriptions. The same page in the legacy panel keeps Pelican's own table (K-B5, Jeroen 2-11).
@@ -1059,13 +1080,13 @@ async function fixesFlow() {
       await p4.addInitScript(() => { const mm = window.matchMedia.bind(window); window.matchMedia = (q) => (/display-mode: *standalone|pointer: *coarse/.test(q) ? { matches: true, media: q, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : mm(q)); });
       await p4.setViewportSize(VIEWPORTS.phone390);
       await p4.goto(new URL('/simplify', base).href, { waitUntil: 'load' }).catch(() => {}); await settle(p4, 1200);
-      await p4.evaluate(() => { const d = window.Alpine.$data(document.querySelector('.ps')); d.customizeMenu = true; }).catch(() => {}); await sleep(700);
-      const box = await p4.evaluate(() => { const m = document.querySelector('#ps-tab-customize-menu'); const r = m && m.getClientRects().length ? m.getBoundingClientRect() : null; return r && { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + 12) }; }).catch(() => null);
+      await p4.evaluate(() => { const d = window.Alpine.$data(document.querySelector('.ps')); d.appearanceMenu = true; }).catch(() => {}); await sleep(700);
+      const box = await p4.evaluate(() => { const m = document.querySelector('#ps-overview-appearance-menu'); const r = m && m.getClientRects().length ? m.getBoundingClientRect() : null; return r && { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + 12) }; }).catch(() => null);
       const cdp = await p4.context().newCDPSession(p4); await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
       let loads = 0; p4.on('load', () => loads++);
       if (box) { const t = (type, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: box.x, y }] });
         await t('touchStart', box.y); for (let y = box.y + 10; y <= box.y + 200; y += 10) { await t('touchMove', y); await sleep(16); } await t('touchEnd', box.y + 200); await sleep(2500); }
-      const shut = await p4.evaluate(() => !document.querySelector('#ps-tab-customize-menu')?.getClientRects().length).catch(() => null);
+      const shut = await p4.evaluate(() => !document.querySelector('#ps-overview-appearance-menu')?.getClientRects().length).catch(() => null);
       await p4.close().catch(() => {});
       say('pull-sheet', !!box && shut === true && loads === 0, { box, shut, loads });
     }
@@ -1181,7 +1202,7 @@ async function seasons(theme) {
   const setSeasonal = async (on) => {
     if (!settings) { problems.push(`${stand}: no Simplify settings page in urls`); return false; }
     await goto(settings, 1500);
-    await click('.s-settings-tabs [role=tab]:has-text("Appearance"), .s-settings-tabs button:has-text("Appearance")', 900);
+    await click('.s-settings-nav a:has-text("Appearance")', 900);
     const sw = page.locator('.fi-fo-field:has-text("Seasonal") button[role=switch], label:has-text("Seasonal") ~ * button[role=switch], .fi-fo-toggle:has-text("Seasonal") button, button[role=switch][id*="seasonal"]').first();
     if (!(await sw.count())) { problems.push(`${stand}: no "Seasonal touches" switch found`); return false; }
     const state = (await sw.getAttribute('aria-checked')) === 'true';

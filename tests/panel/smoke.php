@@ -257,14 +257,36 @@ step('opening the panel shows the overview, unless Pelican is the start page', f
         PanelSettings::save(['start_page' => 'overview']);
     }
 });
-step('settings page renders with its menu, Pelican tabs included', function () use ($admin) {
+step('settings page renders with its one row of tabs, Pelican as a link without frames', function () use ($admin) {
     $url = Settings::getUrl(panel: 'admin');
     $response = visit($admin, $url);
     expectOk($response, $url);
+    $html = $response->getContent();
     auth()->setUser($admin);
-    $menu = collect(Settings::menu())->pluck('group', 'key');
-    if (! str_contains($response->getContent(), 's-settings-tabs') || ($menu['settings:appearance'] ?? null) !== 'panel' || ($menu['settings:pelican-mail'] ?? null) !== 'pelican') {
-        throw new RuntimeException('the settings menu is incomplete: '.json_encode($menu));
+    $menu = collect(Settings::menu())->keyBy('key');
+    $nav = collect(Settings::nav())->pluck('key');
+    if (! str_contains($html, 's-settings-tabs') || ! str_contains($html, '<nav class="s-settings-nav"') || ($menu['settings:appearance']['group'] ?? null) !== 'panel' || ($menu['settings:pelican-mail']['group'] ?? null) !== 'pelican') {
+        throw new RuntimeException('the settings menu is incomplete: '.json_encode($menu->pluck('group', 'key')));
+    }
+    // The header's create popup has a frame of its own; nothing else on the page may be one.
+    if (preg_match('/<iframe(?![^>]*ps-create-frame)/', $html) || str_contains((string) ($menu['settings:pelican-mail']['url'] ?? ''), 'simplify_embed')) {
+        throw new RuntimeException('Pelican\'s settings are still in a frame');
+    }
+    foreach (['appearance', 'general', 'app', 'website', 'subdomains', 'announcements', 'addons', 'hub', 'pelican'] as $key) {
+        if (! $nav->contains($key)) {
+            throw new RuntimeException("the settings' row of tabs has no $key: ".$nav->toJson());
+        }
+    }
+    // Appearance keeps colour, name and logo; the name's style designer is the setup's only.
+    if (str_contains($html, 'class="s-presets"') || ! str_contains($html, 'brand_name')) {
+        throw new RuntimeException('Appearance on the settings page is not the short one');
+    }
+    // A settings page of its own (Website) has the same row of tabs over it.
+    $embed = EmbedSettings::getUrl(panel: 'admin');
+    $page = visit($admin, $embed);
+    expectOk($page, $embed);
+    if (! str_contains($page->getContent(), '<nav class="s-settings-nav"')) {
+        throw new RuntimeException('Website has no settings row of tabs');
     }
 });
 step('a tagged add-on shows on the settings page', function ($app) use ($admin) {
@@ -584,12 +606,18 @@ step('the server page renames the server, and someone without access cannot use 
 });
 step('panel settings are saved and a bad value is refused', function () use ($admin) {
     Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('admin'));
-    $bad = Livewire\Livewire::actingAs($admin)->test(Settings::class)->set('data.overview_seconds', 2)->call('save');
+    $bad = Livewire\Livewire::actingAs($admin)->test(Settings::class)->set('data.accent', 'red')->call('save');
     if ($bad->errors()->isEmpty()) {
-        throw new RuntimeException('a refresh of 2 seconds was accepted');
+        throw new RuntimeException('an accent colour that is not a colour was accepted');
     }
-    noErrors(Livewire\Livewire::actingAs($admin)->test(Settings::class)
-        ->set('data.overview_seconds', 20)->set('data.accent', '#336699')->call('save'));
+    try {
+        PanelSettings::save(['overview_seconds' => 2]);
+        throw new RuntimeException('a refresh of 2 seconds was accepted');
+    } catch (ValidationException) {
+    }
+    // The refresh time is no longer on the settings page; a saved one stays when the page saves.
+    PanelSettings::save(['overview_seconds' => 20]);
+    noErrors(Livewire\Livewire::actingAs($admin)->test(Settings::class)->set('data.accent', '#336699')->call('save'));
     if (PanelSettings::get('overview_seconds') !== 20 || PanelSettings::get('accent') !== '#336699') {
         throw new RuntimeException('settings were not saved: '.json_encode(PanelSettings::all()));
     }
