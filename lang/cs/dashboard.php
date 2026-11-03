@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Ikona karty',
         'the_big_picture_at_the_top' => 'Velký obrázek nahoře na každé kartě',
         'server' => 'Server',
-        'game' => 'Hra',
+        'egg' => 'Egg',
         'name' => 'Název',
         'show_on_each_card' => 'Zobrazit na každé kartě',
         'message_of_the_day' => 'Zpráva dne',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Jiná hra',
+        'other_egg' => 'Jiný egg',
     ],
     'health' => [
         'labels' => [

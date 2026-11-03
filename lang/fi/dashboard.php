@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Kortin kuvake',
         'the_big_picture_at_the_top' => 'Iso kuva jokaisen kortin yläosassa',
         'server' => 'Palvelin',
-        'game' => 'Peli',
+        'egg' => 'Egg',
         'name' => 'Nimi',
         'show_on_each_card' => 'Näytä jokaisessa kortissa',
         'message_of_the_day' => 'Päivän viesti',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Muu peli',
+        'other_egg' => 'Muu egg',
     ],
     'health' => [
         'labels' => [

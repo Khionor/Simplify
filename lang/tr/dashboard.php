@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Kart simgesi',
         'the_big_picture_at_the_top' => 'Her kartın üstündeki büyük resim',
         'server' => 'Sunucu',
-        'game' => 'Oyun',
+        'egg' => 'Egg',
         'name' => 'Ad',
         'show_on_each_card' => 'Her kartta göster',
         'message_of_the_day' => 'Günün mesajı',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Başka oyun',
+        'other_egg' => 'Başka egg',
     ],
     'health' => [
         'labels' => [

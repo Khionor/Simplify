@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Іконка картки',
         'the_big_picture_at_the_top' => 'Велике зображення вгорі кожної картки',
         'server' => 'Сервер',
-        'game' => 'Гра',
+        'egg' => 'Egg',
         'name' => 'Ім\'я',
         'show_on_each_card' => 'Показувати на кожній картці',
         'message_of_the_day' => 'Повідомлення дня',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Інша гра',
+        'other_egg' => 'Інший egg',
     ],
     'health' => [
         'labels' => [

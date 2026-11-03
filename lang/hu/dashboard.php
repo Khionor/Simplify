@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Kártyaikon',
         'the_big_picture_at_the_top' => 'A nagy kép minden kártya tetején',
         'server' => 'Szerver',
-        'game' => 'Játék',
+        'egg' => 'Egg',
         'name' => 'Név',
         'show_on_each_card' => 'Megjelenítés minden kártyán',
         'message_of_the_day' => 'A nap üzenete',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Más játék',
+        'other_egg' => 'Más egg',
     ],
     'health' => [
         'labels' => [

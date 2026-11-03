@@ -838,7 +838,7 @@
         return s.status === 'running' ? t('dashboard.running_software', { software: label }) : label;
       },
       gameLabel(s) {
-        return s.game === 'minecraft' ? 'Minecraft' : String(s.game_label || t('dashboard.other_game')).trim() || t('dashboard.other_game');
+        return s.game === 'minecraft' ? 'Minecraft' : String(s.game_label || t('dashboard.other_egg')).trim() || t('dashboard.other_egg');
       },
       gameKey(s) {
         return this.gameLabel(s).toLocaleLowerCase();
@@ -849,7 +849,7 @@
       },
       eggOptions() {
         const eggs = new Map();
-        for (const s of this.boot.servers || []) eggs.set(this.eggKey(s), String(s.software || '').trim() || t('dashboard.other_game'));
+        for (const s of this.boot.servers || []) eggs.set(this.eggKey(s), String(s.software || '').trim() || t('dashboard.other_egg'));
         return [...eggs].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label));
       },
       /** The servers the filters let through; `change` tries one other choice (for the count behind each option). */

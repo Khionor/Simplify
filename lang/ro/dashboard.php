@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Pictograma cardului',
         'the_big_picture_at_the_top' => 'Imaginea mare din partea de sus a fiecărui card',
         'server' => 'Server',
-        'game' => 'Joc',
+        'egg' => 'Egg',
         'name' => 'Nume',
         'show_on_each_card' => 'Afișați pe fiecare card',
         'message_of_the_day' => 'Mesajul zilei',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Alt joc',
+        'other_egg' => 'Alt egg',
     ],
     'health' => [
         'labels' => [

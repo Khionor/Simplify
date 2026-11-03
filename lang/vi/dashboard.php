@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Biểu tượng thẻ',
         'the_big_picture_at_the_top' => 'Hình lớn ở đầu mỗi thẻ',
         'server' => 'Máy chủ',
-        'game' => 'Game',
+        'egg' => 'Egg',
         'name' => 'Tên',
         'show_on_each_card' => 'Hiện trên mỗi thẻ',
         'message_of_the_day' => 'Thông điệp trong ngày',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Trò chơi khác',
+        'other_egg' => 'Egg khác',
     ],
     'health' => [
         'labels' => [

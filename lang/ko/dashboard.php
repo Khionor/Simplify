@@ -170,7 +170,7 @@ return [
         'card_icon' => '카드 아이콘',
         'the_big_picture_at_the_top' => '각 카드 위쪽의 큰 그림',
         'server' => '서버',
-        'game' => '게임',
+        'egg' => 'Egg',
         'name' => '이름',
         'show_on_each_card' => '각 카드에 표시',
         'message_of_the_day' => '오늘의 메시지',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => '다른 게임',
+        'other_egg' => '다른 Egg',
     ],
     'health' => [
         'labels' => [

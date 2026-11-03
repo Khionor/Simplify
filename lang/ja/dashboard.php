@@ -170,7 +170,7 @@ return [
         'card_icon' => 'カードのアイコン',
         'the_big_picture_at_the_top' => '各カード上部の大きな画像',
         'server' => 'サーバー',
-        'game' => 'ゲーム',
+        'egg' => 'Egg',
         'name' => '名前',
         'show_on_each_card' => '各カードに表示',
         'message_of_the_day' => 'メッセージ・オブ・ザ・デイ',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'その他のゲーム',
+        'other_egg' => 'その他の Egg',
     ],
     'health' => [
         'labels' => [

@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Ikon kartu',
         'the_big_picture_at_the_top' => 'Gambar besar di bagian atas setiap kartu',
         'server' => 'Server',
-        'game' => 'Game',
+        'egg' => 'Egg',
         'name' => 'Nama',
         'show_on_each_card' => 'Tampilkan di setiap kartu',
         'message_of_the_day' => 'Pesan hari ini',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Game lain',
+        'other_egg' => 'Egg lain',
     ],
     'health' => [
         'labels' => [

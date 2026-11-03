@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Kortikon',
         'the_big_picture_at_the_top' => 'Den stora bilden högst upp på varje kort',
         'server' => 'Server',
-        'game' => 'Spel',
+        'egg' => 'Egg',
         'name' => 'Namn',
         'show_on_each_card' => 'Visa på varje kort',
         'message_of_the_day' => 'Dagens meddelande',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Förbättrad av Simplify',
-        'other_game' => 'Annat spel',
+        'other_egg' => 'Annat egg',
     ],
     'health' => [
         'labels' => [

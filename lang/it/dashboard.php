@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Icona della scheda',
         'the_big_picture_at_the_top' => 'L\'immagine grande in cima a ogni scheda',
         'server' => 'Server',
-        'game' => 'Gioco',
+        'egg' => 'Egg',
         'name' => 'Nome',
         'show_on_each_card' => 'Mostra su ogni scheda',
         'message_of_the_day' => 'Messaggio del giorno',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Migliorato da Simplify',
-        'other_game' => 'Altro gioco',
+        'other_egg' => 'Altro egg',
     ],
     'health' => [
         'labels' => [

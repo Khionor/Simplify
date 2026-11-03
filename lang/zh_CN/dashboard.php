@@ -170,7 +170,7 @@ return [
         'card_icon' => '卡片图标',
         'the_big_picture_at_the_top' => '每张卡片顶部的大图',
         'server' => '服务器',
-        'game' => '游戏',
+        'egg' => 'Egg',
         'name' => '名称',
         'show_on_each_card' => '在每张卡片上显示',
         'message_of_the_day' => '每日消息（MOTD）',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => '其他游戏',
+        'other_egg' => '其他 Egg',
     ],
     'health' => [
         'labels' => [

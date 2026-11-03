@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Εικονίδιο κάρτας',
         'the_big_picture_at_the_top' => 'Η μεγάλη εικόνα στην κορυφή κάθε κάρτας',
         'server' => 'Διακομιστής',
-        'game' => 'Παιχνίδι',
+        'egg' => 'Egg',
         'name' => 'Όνομα',
         'show_on_each_card' => 'Εμφάνιση σε κάθε κάρτα',
         'message_of_the_day' => 'Μήνυμα της ημέρας',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Άλλο παιχνίδι',
+        'other_egg' => 'Άλλο egg',
     ],
     'health' => [
         'labels' => [

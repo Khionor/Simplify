@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Kaarticoon',
         'the_big_picture_at_the_top' => 'De grote afbeelding bovenaan elke kaart',
         'server' => 'Server',
-        'game' => 'Game',
+        'egg' => 'Egg',
         'name' => 'Naam',
         'show_on_each_card' => 'Tonen op elke kaart',
         'message_of_the_day' => 'Bericht van de dag',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Verbeterd door Simplify',
-        'other_game' => 'Andere game',
+        'other_egg' => 'Andere egg',
     ],
     'health' => [
         'labels' => [

@@ -170,7 +170,7 @@ return [
         'card_icon' => 'Kortelės piktograma',
         'the_big_picture_at_the_top' => 'Didelis paveikslėlis kiekvienos kortelės viršuje',
         'server' => 'Serveris',
-        'game' => 'Žaidimas',
+        'egg' => 'Egg',
         'name' => 'Pavadinimas',
         'show_on_each_card' => 'Rodyti kiekvienoje kortelėje',
         'message_of_the_day' => 'Dienos žinutė',
@@ -248,7 +248,7 @@ return [
     ],
     'page' => [
         'title' => 'Pelican - Enhanced by Simplify',
-        'other_game' => 'Kitas žaidimas',
+        'other_egg' => 'Kitas egg',
     ],
     'health' => [
         'labels' => [

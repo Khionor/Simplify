@@ -59,7 +59,7 @@
                     <div><strong>{{ $u('card_icon') }}</strong><small>{{ $u('the_big_picture_at_the_top') }}</small></div>
                     <div class="ps-segmented" role="group" aria-label="{{ $u('card_icon') }}">
                         <button type="button" :aria-pressed="overviewPreferences.largeIcon==='server'" x-on:click="setOverviewPreference('largeIcon','server')">{{ $u('server') }}</button>
-                        <button type="button" :aria-pressed="overviewPreferences.largeIcon==='egg'" x-on:click="setOverviewPreference('largeIcon','egg')">{{ $u('game') }}</button>
+                        <button type="button" :aria-pressed="overviewPreferences.largeIcon==='egg'" x-on:click="setOverviewPreference('largeIcon','egg')">{{ $u('egg') }}</button>
                     </div>
                 </div>
                 <span class="ps-customize-sub">{{ $u('show_on_each_card') }}</span>
