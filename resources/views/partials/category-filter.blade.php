@@ -7,7 +7,7 @@
         @if ($current['count'] !== null)<small class="ps-filter-count">{{ $current['count'] }}</small>@endif
         <x-filament::icon icon="tabler-chevron-right" class="ps-filter-chevron" />
     </button>
-    <div class="ps-dropdown ps-filter-menu" role="menu" x-show="open" x-cloak x-transition.opacity>
+    <div class="ps-dropdown ps-filter-menu" role="menu" x-show="open" x-cloak x-transition:enter="ps-t-in" x-transition:enter-start="ps-t-from" x-transition:leave="ps-t-out" x-transition:leave-end="ps-t-from">
         @foreach ($options as $option)
             <button type="button" class="ps-menu-item" role="menuitemradio" aria-checked="{{ $option['key'] === $current['key'] ? 'true' : 'false' }}" wire:click="$set('activeTab', @js($option['key']))" x-on:click="open = false">
                 @if ($option['icon'])<x-filament::icon :icon="$option['icon']" />@endif

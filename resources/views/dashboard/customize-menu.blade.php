@@ -13,7 +13,7 @@
         shown(key) { const keys = this.tabs().map((t) => t.key); return (keys.includes(this.tab) ? this.tab : keys[0]) === key; },
         pick(key) { this.tab = key; try { localStorage.setItem('ps.customize.tab', key); } catch {} },
     }" x-on:click.outside="appearanceMenu=false" x-on:keydown.escape.stop="appearanceMenu=false; $el.closest('.ps-account')?.querySelector('.ps-account-button')?.focus()">
-    <div id="ps-overview-appearance-menu" class="ps-dropdown is-end ps-overview-appearance-menu" :class="{ 'is-wide': !adminTop }" x-show="appearanceMenu" x-cloak x-transition.opacity>
+    <div id="ps-overview-appearance-menu" class="ps-dropdown is-end ps-overview-appearance-menu" :class="{ 'is-wide': !adminTop }" x-show="appearanceMenu" x-cloak x-transition:enter="ps-t-in" x-transition:enter-start="ps-t-from" x-transition:leave="ps-t-out" x-transition:leave-end="ps-t-from">
         {{-- Wide (Jeroen 3-11): the sections on the left, the chosen one's contents straight away on the right; chips on a phone. --}}
         <div class="ps-customize-side">
             <strong class="ps-dropdown-title">{{ $u('customize') }}</strong>

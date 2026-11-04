@@ -21,6 +21,7 @@ php tests/lang.php
 node tests/seasons.cjs
 node tests/unsaved.cjs
 node tests/sheet-drag.cjs
+node tests/sheet-motion.cjs
 node tests/boot.cjs
 node tests/shell-footer.cjs
 node tests/admin-crumb-row.cjs
