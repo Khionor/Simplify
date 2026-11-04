@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.0-beta.4
 
 - Tablets: Admin lists keep their filter, search and buttons on one row, the Admin page's top bar keeps the panel's name on one line, and Customize Simplify opens inside the window.
 - Health in the top bar no longer says Unavailable for a moment when you come back from Admin to the overview, so the buttons next to it stay where they are.
