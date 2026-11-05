@@ -256,10 +256,10 @@ return [
         'labels' => [
             'unavailable' => 'Nicht verfügbar',
             'partly_unavailable' => 'Teilweise nicht verfügbar',
-            'critical' => 'Kritische Last',
+            'critical' => 'Kritisch',
             'maintenance' => 'Wartung',
-            'high' => 'Hohe Last',
-            'healthy' => 'Gesund',
+            'high' => 'Hohe Auslastung',
+            'healthy' => 'Alles O.K.',
         ],
         'problems' => [
             'timeout' => 'Wings hat nicht rechtzeitig geantwortet',
