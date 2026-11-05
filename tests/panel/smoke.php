@@ -9,10 +9,12 @@ use App\Models\User;
 use Filament\Notifications\Notification;
 use Filament\Support\Colors\Color;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\Concerns\InteractsWithAuthentication;
 use Illuminate\Foundation\Testing\Concerns\InteractsWithSession;
 use Illuminate\Foundation\Testing\Concerns\MakesHttpRequests;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +24,9 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\ViewException;
 use Livewire\Component;
+use Livewire\Exceptions\ComponentNotFoundException;
 use Livewire\Features\SupportTesting\Testable;
 use Simplify\Core\Addons\Addon;
 use Simplify\Core\Addons\AddonRegistry;
@@ -61,6 +65,7 @@ use Simplify\Core\Support\Brand;
 use Simplify\Core\Support\FreshViews;
 use Simplify\Core\Support\PanelSettings;
 use Simplify\Core\Support\Preferences;
+use Simplify\Core\Support\StaleCode;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 define('LARAVEL_START', microtime(true));
@@ -1309,6 +1314,23 @@ step('after an update the compiled pages of the previous version are thrown away
     FreshViews::boot(Assets::version());
     if (! $files->exists($compiled)) {
         throw new RuntimeException('the current compiled overview was thrown away again');
+    }
+});
+step('a component missing right after an update opens the page once more instead of a 500 (K-B63)', function (Application $app) {
+    $handler = $app->make(ExceptionHandler::class);
+    $missing = new ComponentNotFoundException('Unable to find component: [simplify-hosting-settings-form]');
+    $page = $handler->render(Request::create('/admin/simplify-settings?tab=addons'), new ViewException('in a view', 0, 1, 'addon-list.blade.php', 1, $missing));
+    if ($page->getStatusCode() !== 302 || ! str_ends_with((string) $page->headers->get('Location'), '?tab=addons&'.StaleCode::RETRIED.'=1')) {
+        throw new RuntimeException('the page was not opened once more: '.$page->getStatusCode());
+    }
+    $again = $handler->render(Request::create('/admin/simplify-settings?'.StaleCode::RETRIED.'=1'), $missing);
+    if ($again->getStatusCode() < 500) {
+        throw new RuntimeException('the second try did not show the error, so it could loop: '.$again->getStatusCode());
+    }
+    $call = Request::create('/livewire/update', 'POST');
+    $call->headers->set('X-Livewire', 'true');
+    if ($handler->render($call, $missing)->getStatusCode() !== 419) {
+        throw new RuntimeException('a Livewire call did not ask to load the page again');
     }
 });
 if ($failed || $passed === 0) {
