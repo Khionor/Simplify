@@ -1115,9 +1115,8 @@ button.ps-statusbar-item:hover { color: var(--ps-ink); }
 }
 
 /* Phone layout (server page): compact server card, large power buttons, four tabs that always fit
-   (Console, Players, Files, More) and a console that fills the screen with quick commands above the
-   command bar. */
-.ps-phone-sections, .ps-quick-commands { display: none; }
+   (Console, Players, Files, More) and a console that fills the screen. */
+.ps-phone-sections { display: none; }
 @media (max-width: 600px) {
   .ps .ps-statusbar-power .ps-btn { width: 40px; height: 40px; }
 
@@ -1161,15 +1160,10 @@ button.ps-statusbar-item:hover { color: var(--ps-ink); }
   .ps-phone-more > .ps-phone-more-menu { top: auto; bottom: calc(100% + 10px); width: min(260px, calc(100vw - 28px)); max-height: 60dvh; overflow-y: auto; }
   .ps-phone-more-menu .ps-menu-item { min-height: 44px; font-size: 14px; }
   .ps-phone-more-menu .ps-menu-item[aria-current="page"] { background: var(--ps-raised); }
-  .ps .ps-quick-commands { display: flex; flex: none; gap: 6px; padding: 8px 12px 0; overflow-x: auto; scrollbar-width: none; border-top: 1px solid var(--ps-console-line); }
-  .ps .ps-quick-commands::-webkit-scrollbar { display: none; }
-  .ps .ps-quick-commands { background: transparent; }
-  .ps-quick-command { flex: none; min-height: 36px; padding: 0 12px; border: 1px solid var(--ps-console-line); border-radius: var(--ps-radius-pill); background: var(--ps-console-raised); color: var(--ps-console-ink); font: 12px var(--ps-mono); white-space: nowrap; }
-  .ps-quick-command:disabled { opacity: .45; }
 }
 @media (max-width: 480px) { .ps-customize-row > .ps-segmented { display: flex; width: 100%; } .ps-customize-row > .ps-segmented > button { flex: 1 1 0; justify-content: center; } .ps-customize-row > .ps-segmented svg { display: none; } }
 
-/* Sideways scrolling strips (filters, sections, quick commands): the side that hides more items fades
+/* Sideways scrolling strips (filters, sections): the side that hides more items fades
    out, so a half-visible chip reads as "swipe for more" instead of cut-off text. Set by scrollHint(). */
 [data-ps-more="end"] { mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
 [data-ps-more="start"] { mask-image: linear-gradient(to left, #000 calc(100% - 32px), transparent); }
@@ -1389,19 +1383,15 @@ html.ps-fit body:has(.ps-server-top) :is(.fi-page-header-main-ctn:has(> .fi-head
 html.ps-fit body:has(.ps-server-top) .fi-resource-list-records-page .fi-page-header-main-ctn:not(:has(> .fi-header .fi-btn)) { position: relative; }
 html.ps-fit body:has(.ps-server-top) .fi-resource-list-records-page .fi-page-header-main-ctn:not(:has(> .fi-header .fi-btn)) > .fi-header { position: absolute; top: 12px; inset-inline-end: 16px; z-index: 2; margin: 0 !important; }
 html.ps-fit body:has(.ps-server-top) .fi-resource-list-records-page .fi-page-header-main-ctn:not(:has(> .fi-header .fi-btn)):has(> .fi-header .fi-header-actions-ctn > *) .fi-ta-header-toolbar { padding-inline-end: 68px; }
-html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main :is(.fi-section, .fi-ta-ctn, .sm-side > *) { margin: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; outline: 0 !important; }
+html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main :is(.fi-section, .fi-ta-ctn) { margin: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; outline: 0 !important; }
 html.ps-fit body:has(.ps-server-top) .fi-main .fi-ta-header-toolbar { padding-inline: 16px; }
 html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main .fi-sc.fi-sc-has-gap:not(:is(.fi-section, .fi-fieldset) *) { gap: 0 !important; }
-html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main :is(.fi-sc > .fi-grid-col:not(.fi-hidden) ~ .fi-grid-col:not(.fi-hidden):not(:is(.fi-section, .fi-fieldset) *), .sm-side > * + *) { border-top: 1px solid var(--ps-line) !important; }
+html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main .fi-sc > .fi-grid-col:not(.fi-hidden) ~ .fi-grid-col:not(.fi-hidden):not(:is(.fi-section, .fi-fieldset) *) { border-top: 1px solid var(--ps-line) !important; }
 html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main .fi-fieldset { margin: 0 !important; padding: 0 !important; border: 0 !important; }
 html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main .fi-fieldset > legend { margin: 0 0 8px; padding: 0; font-weight: 600; }
 /* Loose fields and notices (a schedule's name, the startup command, a Minecraft warning) get a section's margin. */
 html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main .fi-sc > .fi-grid-col:not(:has(.fi-section, .fi-ta-ctn, > .fi-sc-component > .fi-sc)):not(:is(.fi-section, .fi-fieldset) *) { padding: 12px 24px; }
-html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main :is(form > :not(.fi-sc), .fi-page-content > :not(.fi-sc, .fi-ta, .relative, .sm-columns, form, div:empty)) { margin: 0; padding: 12px 24px; }
-/* Toolkit's Plugins page: its two columns in the one card, split by a line. */
-html.ps-fit body:has(.ps-server-top) .fi-main .sm-columns { gap: 0 !important; align-items: stretch; min-height: 100%; }
-html.ps-fit body:has(.ps-server-top) .fi-main .sm-columns > .fi-section { border-inline-end: 1px solid var(--ps-line) !important; }
-html.ps-fit body:has(.ps-server-top) .fi-main .sm-side { gap: 0 !important; }
+html.ps-fit body:has(.ps-server-top:not(.is-console)) .fi-main :is(form > :not(.fi-sc), .fi-page-content > :not(.fi-sc, .fi-ta, .relative, form, div:empty)) { margin: 0; padding: 12px 24px; }
 html.ps-console-big .ps-server-menu { display: none; }
 html.ps-console-big body:has(.ps-server-top) .fi-main-ctn > .fi-main { grid-column: 1 / -1; }
 
@@ -1439,9 +1429,6 @@ html.ps-console-window body:has(.ps-server-top) .fi-main-ctn > .fi-main { grid-c
   .ps-console-grow { display: none !important; }
   #terminal > .xterm { padding: 60px 10px 10px; }
   #terminal > .ps-console-title { height: 48px; }
-  .ps-ui.ps-quick-commands { display: flex; flex: none; gap: 6px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; background: transparent; }
-  #terminal > .ps-quick-commands { position: absolute; inset: auto 0 0; border-top: 1px solid var(--ps-console-line); }
-  #terminal:has(> .ps-quick-commands) > .xterm { padding-bottom: 62px; }
 }
 .ps-live-bars[hidden] { display: none; }
 
