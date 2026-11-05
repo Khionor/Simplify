@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Simplify settings: Run setup again is a section of its own under General, with what it does and a button with its name; each uploaded server banner has a Remove button with its name and shows which servers use it.
+
 ## 2.0.0-beta.8
 
 - Updates: after an update of Simplify or any add-on, the panel throws away all compiled pages and starts PHP's opcache over once, so it never runs old code next to new pages (a 500 on a server page: "Undefined variable $locked"); the server page also opens with an older server class.
