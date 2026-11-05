@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.0-beta.6
+
 - Pelican's lists inside Simplify (servers, users, files, schedules and the rest) are Simplify's list of rows on every screen: the name, the other columns as short texts and chips, the row's buttons on the right. A "Sort by" menu with a direction button takes the place of the column titles.
 - Server page: Server color and Server background open from a small pencil on the server's icon instead of the ⋯ menu; on a phone they open as a sheet.
 - Phones: the server page's head is lower and its numbers (players, CPU, memory, disk) are one strip, so the console starts higher.
