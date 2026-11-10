@@ -258,8 +258,8 @@ return [
             'partly_unavailable' => 'Teilweise nicht verfügbar',
             'critical' => 'Kritisch!',
             'maintenance' => 'Wartung!',
-            'high' => 'hohe Auslastung.',
-            'healthy' => 'Stabil.',
+            'high' => 'hohe Auslastung!',
+            'healthy' => 'Stabil!',
         ],
         'problems' => [
             'timeout' => 'Wings hat nicht rechtzeitig geantwortet',
